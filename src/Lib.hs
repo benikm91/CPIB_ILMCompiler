@@ -22,7 +22,7 @@ isNoise "" = True
 isNoise _ = False
 
 getTokens :: String -> [Token]
-getTokens s = toToken $ filter (not . isNoise) $ split (oneOf ")( =") s
+getTokens = (map toToken) . (filter $ not . isNoise) . (split $ oneOf ")( =")
 
 toToken :: String -> Token
 toToken "while" = WHILE
@@ -36,7 +36,7 @@ toToken x = IDENTIFIER x
 
 -- scanner :: String -> Either CompileError [Token]
 scanner :: String -> [Token]
-scanner s = map toToken (getTokenWords s)
+scanner = getTokens
 
 compile :: String -> String
 compile s = concat $ map (( "(" ++) .(++ ") ") . show) (scanner s)

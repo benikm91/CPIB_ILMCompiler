@@ -21,8 +21,14 @@ isNoise " " = True
 isNoise "" = True
 isNoise _ = False
 
+filterNoise :: [String] -> [String]
+filterNoise = filter $ not . isNoise
+
+getLexemes :: String -> [String]
+getLexemes = split $ oneOf ")( ="
+
 getTokens :: String -> [Token]
-getTokens = (map toToken) . (filter $ not . isNoise) . (split $ oneOf ")( =")
+getTokens = (map toToken) . filterNoise . getLexemes
 
 toToken :: String -> Token
 toToken "while" = WHILE

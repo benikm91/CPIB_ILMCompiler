@@ -2,7 +2,31 @@ module Lib
     ( someFunc
     ) where
 
-import Data.List.Split
+import Data.Char
+
+type Token = (Terminal, Maybe Attribute)
+data Terminal 
+  = IDENT
+  | NOT
+  | LPAREN
+  | RPAREN
+  | BECOMES
+  | SEMICOLON 
+  | SKIP
+  | IF
+  | THEN
+  | ELSE
+  | RELOPR
+  | ALITERAL
+  | SENTINEL deriving (Show)
+
+data Attribute
+  = ALitAttrib Int
+  | BLitAttrib Bool
+  | IdentAttrib String
+  | ROprAttrib RelOprType deriving (Show)
+
+data RelOprType = Less | LessEq | Greater | GreaterEq | Eq  deriving (Show)
 
 someFunc :: IO ()
 someFunc = do 
@@ -10,39 +34,28 @@ someFunc = do
 	let res = compile program
 	putStrLn res
 
-type CompileError = String
-
-data Bracket = OPEN | CLOSE deriving (Show)
-
-data Token = WHILE | SEMICOLON | IDENTIFIER String | B_LITERAL Bool | BRACKET Bracket | EQUALSIGN deriving (Show)
-
-isNoise :: String -> Bool
-isNoise " " = True
-isNoise "" = True
-isNoise _ = False
-
-filterNoise :: [String] -> [String]
-filterNoise = filter $ not . isNoise
-
-getLexemes :: String -> [String]
-getLexemes = split $ oneOf ")( ="
-
-getTokens :: String -> [Token]
-getTokens = (map toToken) . filterNoise . getLexemes
-
-toToken :: String -> Token
-toToken "while" = WHILE
-toToken "(" = BRACKET OPEN
-toToken ")" = BRACKET CLOSE
-toToken ";" = SEMICOLON
-toToken "=" = EQUALSIGN
-toToken "true" = B_LITERAL True
-toToken "false" = B_LITERAL False
-toToken x = IDENTIFIER x
-
--- scanner :: String -> Either CompileError [Token]
-scanner :: String -> [Token]
-scanner = getTokens
-
 compile :: String -> String
 compile s = concat $ map (( "(" ++) .(++ ") ") . show) (scanner s)
+
+scanner :: String -> [Token]
+scanner cs = initState (cs ++ " ", [])
+
+initState :: (String, [Token]) -> [Token]
+initState ('<':'=' : cs, accu) = initState (cs, (RELOPR, Just (ROprAttrib LessEq)) : accu)
+initState ('<'     : cs, accu) = initState (cs, (RELOPR, Just (ROprAttrib Less)) : accu)
+initState (c       : cs, accu)
+  | isAlpha c = initState (identifierState (cs, [c], accu))
+  | isDigit c = initState (numberLiteralState (cs, digitToInt c, accu))
+  | isSpace c = initState (cs, accu)
+  | otherwise = error ("Lexical error: " ++ [c])
+initState ([], accu) = reverse ((SENTINEL, Nothing) : accu)
+
+identifierState :: (String, String, [Token]) -> (String, [Token])
+identifierState (c : cs, accu', accu)
+  | isAlpha c || isDigit c = identifierState (cs, c : accu', accu)
+  | otherwise = (c : cs, (IDENT, Just (IdentAttrib (reverse accu'))) : accu)
+
+numberLiteralState :: (String, Int, [Token]) -> (String, [Token])
+numberLiteralState (c : cs, accu', accu)
+  | isDigit c = numberLiteralState (cs, 10 * accu' + digitToInt c, accu)
+  | otherwise = (c : cs, (ALITERAL, Just (ALitAttrib accu')) : accu)

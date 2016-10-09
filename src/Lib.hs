@@ -28,12 +28,12 @@ data Terminal
   | IDENT deriving (Show)
 
 data Attribute
-  = ALitAttr Int
-  | BLitAttr Bool
+  = IntLitAttr Int
+  | BoolLitAttr Bool
   | IdentAttr String
-  | ROprAttr RelOprType
+  | RelOprAttr RelOprType
   | BracketAttr BracketType
-  | BOprAttr BoolOprType deriving (Show)
+  | BoolOprAttr BoolOprType deriving (Show)
 
 data RelOprType = Less | LessEq | Greater | GreaterEq | Eq  deriving (Show)
 data BoolOprType = And | Or | CAnd | COr deriving(Show)
@@ -79,16 +79,16 @@ initState (c       : cs, accu)
 initState ([], accu) = reverse ((SENTINEL, Nothing) : accu)
 
 boolOprState :: (String, [Token]) -> (String, [Token])
-boolOprState ('&':'&' : cs, accu) = (cs, (BOOLOPR, Just $ BOprAttr  And) : accu)
-boolOprState ('&':'?' : cs, accu) = (cs, (BOOLOPR, Just $ BOprAttr CAnd) : accu)
-boolOprState ('|':'|' : cs, accu) = (cs, (BOOLOPR, Just $ BOprAttr  Or) : accu)
-boolOprState ('|':'?' : cs, accu) = (cs, (BOOLOPR, Just $ BOprAttr COr) : accu)
+boolOprState ('&':'&' : cs, accu) = (cs, (BOOLOPR, Just $ BoolOprAttr  And) : accu)
+boolOprState ('&':'?' : cs, accu) = (cs, (BOOLOPR, Just $ BoolOprAttr CAnd) : accu)
+boolOprState ('|':'|' : cs, accu) = (cs, (BOOLOPR, Just $ BoolOprAttr  Or) : accu)
+boolOprState ('|':'?' : cs, accu) = (cs, (BOOLOPR, Just $ BoolOprAttr COr) : accu)
 
 relOprState :: (String, [Token]) -> (String, [Token])
-relOprState ('>':'=' : cs, accu) = (cs, (RELOPR, Just $ ROprAttr GreaterEq) : accu)
-relOprState ('>'     : cs, accu) = (cs, (RELOPR, Just $ ROprAttr Greater) : accu)
-relOprState ('<':'=' : cs, accu) = (cs, (RELOPR, Just $ ROprAttr LessEq) : accu)
-relOprState ('<'     : cs, accu) = (cs, (RELOPR, Just $ ROprAttr Less) : accu)
+relOprState ('>':'=' : cs, accu) = (cs, (RELOPR, Just $ RelOprAttr GreaterEq) : accu)
+relOprState ('>'     : cs, accu) = (cs, (RELOPR, Just $ RelOprAttr Greater) : accu)
+relOprState ('<':'=' : cs, accu) = (cs, (RELOPR, Just $ RelOprAttr LessEq) : accu)
+relOprState ('<'     : cs, accu) = (cs, (RELOPR, Just $ RelOprAttr Less) : accu)
 
 bracketState :: (String, [Token]) -> (String, [Token])
 bracketState ('(' : cs, accu) = (cs, (LBRACKET, Just $ BracketAttr Round) : accu)
@@ -99,7 +99,7 @@ getKeyword "while" = Just $ (WHILE, Nothing)
 getKeyword "if"    = Just $ (IF, Nothing)
 getKeyword "then"  = Just $ (THEN, Nothing)
 getKeyword "else"  = Just $ (ELSE, Nothing)
-getKeyword "true"  = Just $ (ALITERAL, Just $ BLitAttr True)
+getKeyword "true"  = Just $ (ALITERAL, Just $ BoolLitAttr True)
 getKeyword _ = Nothing
 
 identifierState :: (String, String, [Token]) -> (String, [Token])
@@ -113,4 +113,4 @@ identifierState (c : cs, accu', accu)
 numberLiteralState :: (String, Int, [Token]) -> (String, [Token])
 numberLiteralState (c : cs, accu', accu)
   | isDigit c = numberLiteralState (cs, 10 * accu' + digitToInt c, accu)
-  | otherwise = (c : cs, (ALITERAL, Just $ ALitAttr accu') : accu)
+  | otherwise = (c : cs, (ALITERAL, Just $ IntLitAttr accu') : accu)

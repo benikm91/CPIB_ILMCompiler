@@ -56,6 +56,7 @@ getKeyword "if"    = Just $ (IF, Nothing)
 getKeyword "then"  = Just $ (THEN, Nothing)
 getKeyword "else"  = Just $ (ELSE, Nothing)
 getKeyword "true"  = Just $ (LITERAL, Just $ BoolLitAttr True)
+getKeyword "false"  = Just $ (LITERAL, Just $ BoolLitAttr False)
 getKeyword _       = Nothing
 
 identifierState :: (String, String, [Token]) -> (String, [Token])

@@ -1,44 +1,9 @@
-module Lib
-    ( someFunc
-    ) where
+module Scanner ( scanner ) where
 
 import Data.Char
+import Token
 
-type Token = (Terminal, Maybe Attribute)
-data Terminal 
-  =
-  -- brackets
-  LBRACKET
-  | RBRACKET
-  -- signs
-  | NOT
-  | SEMICOLON 
-  | RELOPR
-  | BOOLOPR
-  -- Keywords
-  | WHILE
-  | IF
-  | THEN
-  | ELSE
-  -- Others
-  | SKIP
-  | BECOMES
-  | SENTINEL
-  | LITERAL
-  | IDENT deriving (Show)
-
-data Attribute
-  = IntLitAttr Int
-  | BoolLitAttr Bool
-  | IdentAttr String
-  | RelOprAttr RelOprType
-  | BracketAttr BracketType
-  | BoolOprAttr BoolOprType deriving (Show)
-
-data RelOprType = Less | LessEq | Greater | GreaterEq | Eq  deriving (Show)
-data BoolOprType = And | Or | CAnd | COr deriving(Show)
-data BracketType = Round | Curly | Square deriving (Show)
-
+-- Help Function for Char.
 isRelOp :: Char -> Bool
 isRelOp '<' = True
 isRelOp '>' = True
@@ -53,15 +18,6 @@ isBracket :: Char -> Bool
 isBracket '(' = True
 isBracket ')' = True
 isBracket _   = False
-
-someFunc :: IO ()
-someFunc = do 
-	program <- getLine
-	let res = compile program
-	putStrLn res
-
-compile :: String -> String
-compile s = concat $ map (( "(" ++) .(++ ") ") . show) (scanner s)
 
 scanner :: String -> [Token]
 scanner cs = initState (cs ++ " ", [])
@@ -100,7 +56,7 @@ getKeyword "if"    = Just $ (IF, Nothing)
 getKeyword "then"  = Just $ (THEN, Nothing)
 getKeyword "else"  = Just $ (ELSE, Nothing)
 getKeyword "true"  = Just $ (LITERAL, Just $ BoolLitAttr True)
-getKeyword _ = Nothing
+getKeyword _       = Nothing
 
 identifierState :: (String, String, [Token]) -> (String, [Token])
 identifierState (c : cs, accu', accu)

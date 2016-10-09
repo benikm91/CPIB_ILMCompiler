@@ -11,13 +11,35 @@ data Terminal
   | SEMICOLON 
   | RELOPR
   | BOOLOPR
+  | COLON
+  | COMMA
+  | ASSIGNMENT
+  -- Arithmetic
+  | PLUS
+  | MINUS
+  | TIMES
+  | DIV
+  | MOD
   -- Keywords
+  | DO
   | WHILE
+  | END_WHILE
   | IF
   | THEN
   | ELSE
+  | PROGRAM
+  | END_PROGRAM
+  | IN
+  | OUT
+  | CONST
+  | TYPE
+  | GLOBAL
+  | PROCEDURE
+  | END_PROCEDURE
   -- Others
   | SKIP
+  | COPY
+  | REF
   | BECOMES
   | SENTINEL
   | LITERAL
@@ -29,8 +51,10 @@ data Attribute
   | IdentAttr String
   | RelOprAttr RelOprType
   | BracketAttr BracketType
-  | BoolOprAttr BoolOprType deriving (Show)
+  | BoolOprAttr BoolOprType 
+  | TypeAttr TypeType deriving (Show)
 
-data RelOprType = Less | LessEq | Greater | GreaterEq | Eq  deriving (Show)
+data TypeType = Integer Int deriving (Show)
+data RelOprType = Less | LessEq | Greater | GreaterEq | Eq deriving (Show)
 data BoolOprType = And | Or | CAnd | COr deriving(Show)
 data BracketType = Round | Curly | Square deriving (Show)

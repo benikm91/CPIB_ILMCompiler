@@ -24,7 +24,7 @@ data Terminal
   | SKIP
   | BECOMES
   | SENTINEL
-  | ALITERAL
+  | LITERAL
   | IDENT deriving (Show)
 
 data Attribute
@@ -99,7 +99,7 @@ getKeyword "while" = Just $ (WHILE, Nothing)
 getKeyword "if"    = Just $ (IF, Nothing)
 getKeyword "then"  = Just $ (THEN, Nothing)
 getKeyword "else"  = Just $ (ELSE, Nothing)
-getKeyword "true"  = Just $ (ALITERAL, Just $ BoolLitAttr True)
+getKeyword "true"  = Just $ (LITERAL, Just $ BoolLitAttr True)
 getKeyword _ = Nothing
 
 identifierState :: (String, String, [Token]) -> (String, [Token])
@@ -113,4 +113,4 @@ identifierState (c : cs, accu', accu)
 numberLiteralState :: (String, Int, [Token]) -> (String, [Token])
 numberLiteralState (c : cs, accu', accu)
   | isDigit c = numberLiteralState (cs, 10 * accu' + digitToInt c, accu)
-  | otherwise = (c : cs, (ALITERAL, Just $ IntLitAttr accu') : accu)
+  | otherwise = (c : cs, (LITERAL, Just $ IntLitAttr accu') : accu)

@@ -78,8 +78,8 @@ relOprState ('<':'=' : cs, accu) = (cs, (RELOPR, Just $ RelOprAttr LessEq) : acc
 relOprState ('<'     : cs, accu) = (cs, (RELOPR, Just $ RelOprAttr Less) : accu)
 
 bracketState :: (String, [Token]) -> (String, [Token])
-bracketState ('(' : cs, accu) = (cs, (LBRACKET, Just $ BracketAttr Round) : accu)
-bracketState (')' : cs, accu) = (cs, (RBRACKET, Just $ BracketAttr Round) : accu)
+bracketState ('(' : cs, accu) = (cs, (L_BRACKET_ROUND, Nothing) : accu)
+bracketState (')' : cs, accu) = (cs, (R_BRACKET_ROUND, Nothing) : accu)
 
 getKeyword :: String -> Maybe Token
 getKeyword "while"      = Just $ (WHILE, Nothing)

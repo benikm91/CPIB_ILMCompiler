@@ -4,8 +4,8 @@ type Token = (Terminal, Maybe Attribute)
 data Terminal 
   =
   -- brackets
-  LBRACKET
-  | RBRACKET
+  L_BRACKET_ROUND
+  | R_BRACKET_ROUND
   -- signs
   | NOT
   | SEMICOLON 
@@ -50,11 +50,9 @@ data Attribute
   | BoolLitAttr Bool
   | IdentAttr String
   | RelOprAttr RelOprType
-  | BracketAttr BracketType
   | BoolOprAttr BoolOprType 
   | TypeAttr TypeType deriving (Show)
 
 data TypeType = Integer Int deriving (Show)
 data RelOprType = Less | LessEq | Greater | GreaterEq | Eq deriving (Show)
 data BoolOprType = And | Or | CAnd | COr deriving(Show)
-data BracketType = Round | Curly | Square deriving (Show)

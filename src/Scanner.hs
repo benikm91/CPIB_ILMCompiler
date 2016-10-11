@@ -108,7 +108,7 @@ identifierState (c : cs, accu', accu)
   | isLetter c || isDigit c = identifierState (cs, c : accu', accu)
   | otherwise = case getKeyword word of
     Just keyword -> (c : cs, keyword : accu)
-    Nothing -> (c : cs, (IDENT, Just $ IdentAttr (word)) : accu)
+    Nothing -> (c : cs, (IDENT, Just $ IdentAttr word) : accu)
     where word = reverse accu'
 
 numberLiteralState :: (String, Int, [Token]) -> (String, [Token])

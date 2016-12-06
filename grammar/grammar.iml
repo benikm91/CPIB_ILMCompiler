@@ -79,14 +79,94 @@ val string_of_term =
   | MECHMODE => "MECHMODE"
 
 datatype nonterm
-  = expr
-  | term3
-  | factor
+  = program
+    | cmd
+    | cpsCmd
+    | globInits
+    | idents
+    | expr
+    | term1
+    | term2
+    | term3
+    | decl
+    | stoDecl
+    | funDecl
+    | globImps
+    | globImp
+    | cpsDecl
+    | cpsStoDecl
+    | _stoDeclMulti
+    | _declMulti
+    | _flowModeOptional
+    | _commaMulti
+    | _changeOptional
+    | _returnOptional
+    | _globalOptional
+    | _localOptional
+    | factor
+    | exprList
+    | monadicOpr
+    | _exprOptional
+    | _exprMulti
+    | _initOrExprListOptional
+    | progParamList
+    | progParam
+    | paramList
+    | param
+    | typedIdent
+    | _progParamOptional
+    | _flowModeOptional
+    | _flowModeOptional
+    | _changeModeOptional
+    | _paramOptional
+    | _mechmodeOptional
+    | _commaMany
+    | _progParamMany
 
 val string_of_nonterm =
-  fn expr   => "expr"
-   | term3  => "term3"
-   | factor => "factor"
+  fn  program => "program"
+    | cmd => "cmd"
+    | cpsCmd => "cpsCmd"
+    | globInits => "globInits"
+    | idents => "idents"
+    | expr => "expr"
+    | term1 => "term1"
+    | term2 => "term2"
+    | term3 => "term3"
+    | decl => "decl"
+    | stoDecl => "stoDecl"
+    | funDecl => "funDecl"
+    | globImps => "globImps"
+    | globImp => "globImp"
+    | cpsDecl => "cpsDecl"
+    | cpsStoDecl => "cpsStoDecl"
+    | _stoDeclMulti => "_stoDeclMulti"
+    | _declMulti => "_declMulti"
+    | _flowModeOptional => "_flowModeOptional"
+    | _commaMulti => "_commaMulti"
+    | _changeOptional => "_changeOptional"
+    | _returnOptional => "_returnOptional"
+    | _globalOptional => "_globalOptional"
+    | _localOptional => "_localOptional"
+    | factor => "factor"
+    | exprList => "exprList"
+    | monadicOpr => "monadicOpr"
+    | _exprOptional => "_exprOptional"
+    | _exprMulti => "_exprMulti"
+    | _initOrExprListOptional => "_initOrExprListOptional"
+    | progParamList => "progParamList"
+    | progParam => "progParam"
+    | paramList => "paramList"
+    | param => "param"
+    | typedIdent => "typedIdent"
+    | _progParamOptional => "_progParamOptional"
+    | _flowModeOptional => "_flowModeOptional"
+    | _flowModeOptional => "_flowModeOptional"
+    | _changeModeOptional => "_changeModeOptional"
+    | _paramOptional => "_paramOptional"
+    | _mechmodeOptional => "_mechmodeOptional"
+    | _commaMany => "_commaMany"
+    | _progParamMany => "_progParamMany"
 
 val string_of_gramsym = (string_of_term, string_of_nonterm)
 

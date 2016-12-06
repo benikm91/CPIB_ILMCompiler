@@ -1,0 +1,216 @@
+datatype term
+  = PROGRAM
+  | IDENT
+  | LBRACE
+  | RBRACE
+  | GLOBAL
+  | LOCAL
+  | SKIP
+  | BECOMES
+  | IF
+  | ELSE
+  | WHILE
+  | LPAREN
+  | RPAREN
+  | CALL
+  | DEBUGIN
+  | DEBUGOUT
+  | FOR
+  | SEMICOLON
+  | INIT
+  | COMMA
+  | BOOLOPR
+  | RELOPR
+  | ADDOPR
+  | MULTOPR
+  | FUN
+  | SEMICOLON
+  | FLOWMODE
+  | COMMA
+  | CHANGEMODE
+  | RETURNS
+  | LITERAL
+  | NOT
+  | COLON
+  | ATOMTYPE
+  | LBRACKET
+  | RBRACKET
+  | PNTPNT
+  | MECHMODE
+
+val string_of_term = 
+  fn PROGRAM => "PROGRAM"
+  | IDENT => "IDENT"
+  | LBRACE => "LBRACE"
+  | RBRACE => "RBRACE"
+  | GLOBAL => "GLOBAL"
+  | LOCAL => "LOCAL"
+  | SKIP => "SKIP"
+  | BECOMES => "BECOMES"
+  | IF => "IF"
+  | ELSE => "ELSE"
+  | WHILE => "WHILE"
+  | LPAREN => "LPAREN"
+  | RPAREN => "RPAREN"
+  | CALL => "CALL"
+  | DEBUGIN => "DEBUGIN"
+  | DEBUGOUT => "DEBUGOUT"
+  | FOR => "FOR"
+  | SEMICOLON => "SEMICOLON"
+  | INIT => "INIT"
+  | COMMA => "COMMA"
+  | BOOLOPR => "BOOLOPR"
+  | RELOPR => "RELOPR"
+  | ADDOPR => "ADDOPR"
+  | MULTOPR => "MULTOPR"
+  | FUN => "FUN"
+  | SEMICOLON => "SEMICOLON"
+  | FLOWMODE => "FLOWMODE"
+  | COMMA => "COMMA"
+  | CHANGEMODE => "CHANGEMODE"
+  | RETURNS => "RETURNS"
+  | LITERAL => "LITERAL"
+  | NOT => "NOT"
+  | COLON => "COLON"
+  | ATOMTYPE => "ATOMTYPE"
+  | LBRACKET => "LBRACKET"
+  | RBRACKET => "RBRACKET"
+  | PNTPNT => "PNTPNT"
+  | MECHMODE => "MECHMODE"
+
+datatype nonterm
+  = expr
+  | term3
+  | factor
+
+val string_of_nonterm =
+  fn expr   => "expr"
+   | term3  => "term3"
+   | factor => "factor"
+
+val string_of_gramsym = (string_of_term, string_of_nonterm)
+
+local
+  open FixFoxi.FixFoxiCore
+in
+
+
+val productions =
+[
+	(program,
+		[[T PROGRAM, T IDENT, N progParamList, T LBRACE, N cpsCmd, T RBRACE],
+		 [T PROGRAM, T IDENT, N progParamList, T GLOBAL, N cpsDecl, T LBRACE, N cpsCmd, T RBRACE]]),	 
+	(cmd,
+		[[T SKIP],
+		 [N expr, T BECOMES, N expr],
+		 [T IF, N expr, T LBRACE, N cpsCmd, T RBRACE, T ELSE, T LBRACE, N cpsCmd, T RBRACE],
+		 [T WHILE, T LPAREN, N expr, T RPAREN, T LBRACE, N cpsCmd, T RBRACE],
+		 [T CALL, T IDENT, N exprList],
+		 [T CALL, T IDENT, N exprList, N globInits],
+		 [T DEBUGIN, N expr],
+		 [T DEBUGOUT, N expr],
+		 [T FOR, T LPAREN, T IDENT, T RPAREN, T LBRACE, N cpsCmd, T RBRACE]]),
+	(cpsCmd,
+		[[N cmd],
+		 [N cmd, T SEMICOLON, N cpsCmd]]),
+	(globInits,
+		[[T INIT, N idents]]),
+	(idents,
+		[[T IDENT],
+		 [T IDENT, T COMMA, N idents]]),
+	(expr,
+		[[N term1],
+		 [N term1, T BOOLOPR, N expr]]),
+	(term1,
+		[[N term2],
+		 [N term2, T RELOPR, N term2]]),
+	(term2,
+		[[N term3],
+		 [N term3, T ADDOPR, N term2]]),
+	(term3,
+		[[N factor],
+		 [N factor, T MULTOPR, N term3]]),
+	(decl, 
+		[[N stoDecl], [N funDecl]])
+	(stoDecl, 
+		[[N _changeOptional, N typedIdent ], [N typedIdent]])
+	(funDecl, 
+		[[T FUN, T IDENT, N paramList, N _returnOptional, N _globalOptional, N _localOptional, T LBRACE, N cpsCmd, T RBRACE]])
+	(globImps, 
+		[[N globImp, N _commaMulti]])
+	(globImp, 
+		[[N _flowModeOptional, N _changeOptional, T IDENT]])
+	(cpsDecl, 
+		[[N decl, N _declMulti]])
+	(cpsStoDecl, 
+		[[N stoDecl, N _stoDeclMulti]])
+	(_stoDeclMulti, 
+		[[], [T SEMICOLON, N stoDecl, N _stoDeclMulti]])
+	(_declMulti, 
+		[[], [T SEMICOLON, N deck, N _declMulti]])
+	(_flowModeOptional, 
+		[[], [T FLOWMODE]])
+	(_commaMulti, 
+		[[], [T COMMA, N globImp, N _commaMulti]])
+	(_changeOptional, 
+		[[], [T CHANGEMODE]])
+	(_returnOptional, 
+		[[], [T RETURNS, N stoDecl]])
+	(_globalOptional, 
+		[[], [T GLOBAL, N globImps]])
+	(_localOptional, 
+		[[], [T LOCAL, N cpsStoDecl]])
+	(factor, 
+		[[T LITERAL], 
+		 [T IDENT, N _initOrExprListOptional]], 
+		 [N mpnadicOpr, N factor], 
+		 [T LPAREN, N expr, T RPAREN])
+	(exprList, 
+		[[T LPAREN, N _exprOptional, T RPAREN]])
+	(monadicOpr, 
+		[[T NOT, T ADDOPR]])
+	(_exprOptional, 
+		[[], [N expr, N _exprMulti]])
+	(_exprMulti, 
+		[[], [T COMMA, N expr, N _exprMutli]])
+	(_initOrExprListOptional, 
+		[[], [T INIT], [N exprList]]),
+		
+	(progParamList, 
+		[[T LPAREN, N _progParamOptional, N RPAREN]]),
+	(progParam, 
+		[[N _flowModeOptional, N _changeModeOptional, T typedIdent]]),
+	(paramList, 
+		[[T LPAREN, N _paramOptional, T RPAREN]]),
+	(param, 
+		[[N _flowModeOptional, N _mechmodeOptional, N _changeModeOptional, N typedIdent]]),
+	(typedIdent, 
+		[[T IDENT, T COLON, T ATOMTYPE],
+		[T IDENT, T COLON, T ATOMTYPE, T LBRACKET, N expr, T PNTPNT, N expr, T RBRACKET],
+		[T IDENT, T COLON, T ATOMTYPE, T LPAREN, N expr, T PNTPNT, N expr, T RPAREN]]),
+	(_progParamOptional, 
+		[[N progParam, N _progParamMany], 
+		 []]),
+	(_flowModeOptional, 
+		[[T FLOWMODE],
+		 []]),
+	(_flowModeOptional, 
+		[[T FLOWMODE], 
+		 []]),
+	(_changeModeOptional, [
+		[T CHANGEMODE],
+		 []]),
+	(_paramOptional, 
+		[[N param, N _commaMany],
+		 []]),
+	(_mechmodeOptional, 
+		[[N MECHMODE],
+		 []]),
+	(_commaMany, 
+		[[N COMMA, param, N _commaMany],
+		 []]),
+	(_progParamMany, 
+		[[T COMMA, N progParam, N _progParamMany], 
+		 []])
+]
+

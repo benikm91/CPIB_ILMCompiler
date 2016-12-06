@@ -281,6 +281,6 @@ val productions =
 
 val S = program
 
-val result = fix_foxi productions S string_of_gramsym
+val result = fix_foxi productions S stringunderlineofunderlinegramsym
 
 end (* local *)

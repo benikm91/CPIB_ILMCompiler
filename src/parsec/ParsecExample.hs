@@ -9,6 +9,7 @@ readExpr input = case parse parseProgram "Hambbe" input of
 
 data IMLVal = Program IMLVal
             | Ident String
+            | FlowMode FlowModeType
             | Message String
             deriving Show
 
@@ -45,11 +46,21 @@ progParamList :: Parse IMLVal
 progParamList = do
     char '('
     spaces
+    params <- progParam `sepBy` (symbol ",")
+    spaces
+    char ')'
+    return 
 
-progParam
+progParam :: Parse IMLVal
+progParam = do
+    optionMaybe 
 
-_progParamOptional :: Parse IMLVal
-_progParamOptional = do
+flowMode :: Parse IMLVal
+flowMode = 
+    
+
+_changeModeOptional :: Parse IMLVal
+_changeModeOptional = do
 
 
 	(program,
@@ -58,13 +69,17 @@ _progParamOptional = do
 
 	(progParamList, 
 		[[T LPAREN, N underlineprogParamOptional, T RPAREN]]),
+
+	(progParam, 
+		[[N underlineflowModeOptional, N underlinechangeModeOptional, T typedIdent]]),
         
 	(underlineprogParamOptional, 
 		[[N progParam, N underlineprogParamMany], 
+        
+	(underlineflowModeOptional, 
+		[[], [T FLOWMODE]]),
 
         
-	(progParam, 
-		[[N underlineflowModeOptional, N underlinechangeModeOptional, T typedIdent]]),
 
 parseIdent :: Parser IMLVal
 parseIdent = do

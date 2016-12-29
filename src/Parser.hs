@@ -310,8 +310,3 @@ parseMonadicOpr = do
     char '-'
     return $ Minus
 
-
-main :: IO()
-main = print . readExpr $ "program HambbeKoenig {}"
-
-

@@ -19,7 +19,7 @@ data IMLSign = Plus | Minus | Not
 data IMLLiteral = IMLBool Bool | IMLInt Int
             deriving Show
 
-data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] 
+data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [Parameters] [Functions] [Statements]
             | Ident String
             | IdentDeclaration IMLChangeMode IMLVal IMLType
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
@@ -310,7 +310,7 @@ parseMonadicOpr = do
     spaces
     char '!'
     return Not
-    <|> do
+   0 <|> do
     spaces
     char '+'
     return $ Plus

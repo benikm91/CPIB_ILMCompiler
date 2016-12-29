@@ -10,6 +10,7 @@ prog euklid(in m: int, in n: int, out o: int) {
   }
   while (o1) {
     func1(m, o1);
+    func3(m, o1);
   }
   var o2: int;
   func2(n, o2);

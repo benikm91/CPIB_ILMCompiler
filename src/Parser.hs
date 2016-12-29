@@ -310,7 +310,7 @@ parseMonadicOpr = do
     spaces
     char '!'
     return Not
-   0 <|> do
+    <|> do
     spaces
     char '+'
     return $ Plus

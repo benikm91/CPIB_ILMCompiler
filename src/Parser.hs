@@ -55,7 +55,7 @@ printTree :: IMLVal -> String
 printTree val = printIml 0 val
 
 printIml :: Int -> IMLVal -> String
-printIml i (Program name params funcs states) = "Program" ++ (printIml i name) ++ "\n" ++ (printList 0 params) ++ "\n" ++ (printList 0 funcs) ++ "\n" ++ (printList 0 states)
+printIml i (Program name params funcs states) = "Program" ++ (printIml i name) ++ "\n" ++ (printList i params) ++ "\n" ++ (printList i funcs) ++ "\n" ++ (printList i states)
 printIml i (Ident name) = "(Ident "++ name ++")"
 printIml i t@(IdentDeclaration changemode val imltype) = show t
 printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ (show imlFlowMode) ++ (show imlChangeMode) ++ (printIml i ident) ++ (show imlType)

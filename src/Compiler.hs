@@ -5,7 +5,7 @@ module Compiler
 import Parser
 
 readAndCompile :: IO ()
-readAndCompile = do  
+readAndCompile = do
     program <- readFile "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"
     -- "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"
     -- "E:\Users\Christian\Documents\FHNW\Semester5\cpib\CPIB_ILMCompiler\sample\sample1.iml"

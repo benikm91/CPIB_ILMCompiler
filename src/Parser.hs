@@ -13,7 +13,7 @@ data IMLFlowMode = In | Out | InOut
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLSign = Plus | Minus | Not
+data IMLOperation = Plus | Minus | Not
             deriving Show
 
 data IMLLiteral = IMLBool Bool | IMLInt Int
@@ -23,12 +23,12 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | Ident String
             | IdentDeclaration IMLChangeMode IMLVal IMLType
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
-            | IdentFactor (Maybe IMLVal)
+            | IdentFactor IMLVal (Maybe IMLVal)
             | BoolOpr IMLVal IMLVal
             | RelOpr IMLVal IMLVal
             | AddOpr IMLVal IMLVal
             | MultOpr IMLVal IMLVal
-            | SignedVal IMLSign IMLVal
+            | MonadicOpr IMLOperation IMLVal
             | Literal IMLLiteral
             | Init
             | ExprList [IMLVal]
@@ -37,6 +37,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | FunctionCall IMLVal [IMLVal] -- Name [Parameters]
             | If IMLVal [IMLVal] [IMLVal] -- Condition [If Statements] [Else Statement]
             | While IMLVal [IMLVal] -- Condition [Statements]
+            | Assignment IMLVal IMLVal -- Name Expression
             deriving Show
 
 -- Programm
@@ -191,6 +192,16 @@ parseFor = do
     string "for"
     return $ Message "TODO"
 
+parseAssignment :: Parser IMLVal
+parseAssignment = do
+    spaces
+    identName <- parseIdent
+    spaces
+    string ":="
+    spaces
+    expression <- parseExpr
+    return $ Assignment identName expression
+
 
 parseFunction :: Parser IMLVal
 parseFunction = do
@@ -230,15 +241,10 @@ parseIdentDeclaration = do
     return $ IdentDeclaration changeMode identName identType
 
 parseFlowMode :: Parser IMLFlowMode
-parseFlowMode = option InOut $ do 
-    (string "in")
-    return In
-    <|> do 
-    (string "out")
-    return Out
-    <|> do 
-    (string "inout")
-    return InOut
+parseFlowMode = option InOut $ 
+        parseString "in" In
+    <|> parseString "out" Out
+    <|> parseString "InOut" InOut
 
 parseChangeMode :: Parser IMLChangeMode
 parseChangeMode = try parseVal
@@ -246,19 +252,13 @@ parseChangeMode = try parseVal
     <|> option Mutable parseConst
 
 parseVal :: Parser IMLChangeMode
-parseVal = do 
-    string "val"
-    return Const
+parseVal = parseString "val" Const
 
 parseVar :: Parser IMLChangeMode
-parseVar = do 
-    string "var"
-    return Mutable
+parseVar = parseString "var" Mutable
 
 parseConst :: Parser IMLChangeMode
-parseConst = do 
-    string "const"
-    return Const
+parseConst = parseString "const" Const
 
 parseTypedIdent :: Parser (IMLVal, IMLType)
 parseTypedIdent = do
@@ -271,9 +271,7 @@ parseTypedIdent = do
     return (identName, identType)
 
 parseType :: Parser IMLType
-parseType = do
-    string "int"
-    return Int
+parseType = parseString "int" Int
 
 parseIdent :: Parser IMLVal
 parseIdent = do
@@ -286,48 +284,49 @@ parseExpr = do
     return $ Message "TODO"
 
 parseFactor :: Parser IMLVal
-parseFactor = do
+parseFactor = 
+        try parseTrue
+    <|> try parseFalse
+    <|> try parseNumber
+    <|> try parseIdentFactor
+    <|> try parseMonadicOpr
+    <|> try (brackets parseExpr)
+
+parseMonadicOpr :: Parser IMLVal
+parseMonadicOpr = do
     spaces
-    try $ string "true"
-    return $ Literal $ IMLBool True
-    <|> do
-    try $ string "false"
-    return $ Literal $ IMLBool False
-    <|> do
-    literal <- try $ read <$> many1 digit
-    return $ Literal $ IMLInt literal
-    <|> do
+    opr <- try parseOpr
+    spaces
+    factor <- try parseFactor
+    return $ MonadicOpr opr factor
+
+parseIdentFactor :: Parser IMLVal
+parseIdentFactor = do
+    spaces
     ident <- try parseIdent
     spaces
     identAddition <- try $ optionMaybe (choice [ parseInit, parseExprList ])
-    return $ IdentFactor identAddition
-    <|> do
-    monadicOpr <- try parseMonadicOpr
-    spaces
-    factor <- try parseFactor
-    return $ SignedVal monadicOpr factor
-    <|> do
-    char '('
-    spaces
-    expr <- parseExpr
-    spaces
-    char ')'
-    return expr
+    return $ IdentFactor ident identAddition
+
+-- TODO Perhaps parseTrue, parseFalse, parseNumber as where functions :) not sure
+parseTrue :: Parser IMLVal
+parseTrue = parseString "true" (Literal $ IMLBool True)
+
+parseFalse :: Parser IMLVal
+parseFalse = parseString "false" (Literal $ IMLBool False)
+
+parseNumber :: Parser IMLVal
+parseNumber = do
+    literal <- try $ read <$> many1 digit
+    return $ Literal $ IMLInt literal
 
 parseInit :: Parser IMLVal
-parseInit = do
-    spaces
-    string "init"
-    return Init
+parseInit = parseString "init" Init
 
 parseExprList :: Parser IMLVal
 parseExprList  = do
     spaces
-    char '('
-    spaces
-    exprList <- option [] parseExprListInner
-    spaces
-    char ')'
+    exprList <- (brackets $ option [] parseExprListInner)
     return $ ExprList exprList
 
 parseExprListInner :: Parser [IMLVal]
@@ -335,17 +334,19 @@ parseExprListInner = do
     expressions <- parseExpr `sepBy` (string ",")
     return expressions
 
-parseMonadicOpr :: Parser IMLSign
-parseMonadicOpr = do
-    spaces
-    char '!'
-    return Not
-    <|> do
-    spaces
-    char '+'
-    return $ Plus
-    <|> do
-    spaces
-    char '-'
-    return $ Minus
+parseOpr :: Parser IMLOperation
+parseOpr =
+        parseChar '!' Not
+    <|> parseChar '+' Plus
+    <|> parseChar '-' Minus
+
+parseChar :: Char -> a -> Parser a
+parseChar c r = do 
+    char c
+    return r
+
+parseString :: String -> a -> Parser a
+parseString s r = do
+    string s
+    return r
 

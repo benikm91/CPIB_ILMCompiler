@@ -60,11 +60,7 @@ printIml i (Ident name) = "(Ident "++ name ++")"
 printIml i t@(IdentDeclaration changemode val imltype) = show t
 printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printIml i ident ++ " " ++ show imlType
 printIml i t@(IdentFactor _ _) = show t
--- printIml i t@(BoolOpr iMLVala iMLValb) = show t
---printIml i t@(RelOpr iMLVala iMLValb) = show t
---printIml i t@(AddOpr iMLVala iMLValb) = show t
---printIml i t@(MultOpr iMLVala iMLValb) = show t
-printIml i t@(MonadicOpr iMLSign iMLVal) = show t
+printIml i t@(MonadicOpr iMLOperation iMLVal) = show t
 printIml i t@(Literal iMLLiteral) = show t
 printIml i t@Init = show t
 printIml i t@(ExprList iMLVals) = show t
@@ -73,6 +69,7 @@ printIml i (FunctionDeclaration name params states) = "FunctionDeclaration " ++ 
 printIml i (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
 printIml i (If condition ifStates elseStates) = "If " ++ printIml i condition ++ "\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
 printIml i (While condition states) = "While " ++ printIml i condition ++ "\n" ++ printList i states
+printIml i t@(DyadicOpr op term1 term2) = show t
 
 printList :: Int -> [IMLVal] -> String
 printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (addTabs (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"
@@ -292,28 +289,6 @@ parseIdent = do
                 head <- oneOf identStartChars
                 tail <- many $ oneOf identChars
                 return $ Ident (head : tail)
-
-
---parseExpr :: Parser IMLVal
---parseExpr = do 
---    term <- try parseTerm1
---    return try parseBoolExpr term <|> term
---
---parseTerm1 :: Parser IMLVal
---parseTerm1 = do 
---    term <- parseTerm2
---    return $ option term $ parseRelExpr term
---
---parseTerm2 :: Parser IMLVal
---parseTerm2 = do 
---    term <- parseTerm3
---    return $ option term $ parseRelExpr term
---
---parseTerm3 :: Parser IMLVal
---parseTerm3 = do 
---    term <- parseFactor
---    return $ option term $ parseRelExpr term
-
 
 -- TODO: parseExpr, parseTerm1, parseTerm2, parseTerm3 should be implemeted more nicely
 parseExpr :: Parser IMLVal

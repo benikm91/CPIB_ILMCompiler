@@ -23,7 +23,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | Ident String
             | IdentDeclaration IMLChangeMode IMLVal IMLType
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
-            | IdentFactor (Maybe IMLVal)
+            | IdentFactor IMLVal (Maybe IMLVal)
             | BoolOpr IMLVal IMLVal
             | RelOpr IMLVal IMLVal
             | AddOpr IMLVal IMLVal
@@ -271,11 +271,7 @@ parseFactor =
         try parseTrue
     <|> try parseFalse
     <|> try parseNumber
-    <|> do
-    ident <- try parseIdent
-    spaces
-    identAddition <- try $ optionMaybe (choice [ parseInit, parseExprList ])
-    return $ IdentFactor identAddition
+    <|> try parseIdentFactor
     <|> do
     spaces
     monadicOpr <- try parseMonadicOpr
@@ -283,6 +279,14 @@ parseFactor =
     factor <- try parseFactor
     return $ SignedVal monadicOpr factor
     <|> try (brackets parseExpr)
+
+parseIdentFactor :: Parser IMLVal
+parseIdentFactor = do
+    spaces
+    ident <- try parseIdent
+    spaces
+    identAddition <- try $ optionMaybe (choice [ parseInit, parseExprList ])
+    return $ IdentFactor ident identAddition
 
 -- TODO Perhaps parseTrue, parseFalse, parseNumber as where functions :) not sure
 parseTrue :: Parser IMLVal

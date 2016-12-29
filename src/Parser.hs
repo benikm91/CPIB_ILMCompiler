@@ -10,12 +10,12 @@ data IMLType = Int64
 data IMLFlowMode = In | Out
             deriving Show
 
-data IMLChangeMode = Const
+data IMLChangeMode = Const | Mutable
             deriving Show
 
 data IMLVal = Program [IMLVal] IMLVal
             | Ident String
-            | IdentDeclaration (Maybe IMLFlowMode) (Maybe IMLChangeMode) IMLVal IMLType
+            | IdentDeclaration (Maybe IMLFlowMode) IMLChangeMode IMLVal IMLType
             | Message String
             deriving Show
 
@@ -64,9 +64,10 @@ parseProgParamList = do
 
 parseProgParam :: Parser IMLVal
 parseProgParam = do
+    spaces
     flowMode <- optionMaybe parseFlowMode
     spaces
-    changeMode <- optionMaybe parseChangeMode
+    changeMode <- parseChangeMode
     spaces
     (identName, identType) <- parseTypedIdent
     return $ IdentDeclaration flowMode changeMode identName identType
@@ -80,7 +81,10 @@ parseFlowMode = do
     return Out
 
 parseChangeMode :: Parser IMLChangeMode
-parseChangeMode = do 
+parseChangeMode = option Mutable parseConst
+
+parseConst :: Parser IMLChangeMode
+parseConst = do 
     string "const"
     return Const
 

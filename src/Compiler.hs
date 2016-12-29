@@ -8,7 +8,7 @@ readAndCompile :: IO ()
 readAndCompile = do  
     -- program <- getContents  
     putStrLn $ "compiling " -- ++ program
-    putStrLn $ compile "program HambbeKoenig(in  const m:int64) {}"  
+    putStrLn $ compile "program intDiv(in  const m:int64, in  const n:int64, out const q:int64, out const r:int64) {}"  
 
 --compile = do 
   --program <- getLine

@@ -37,6 +37,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | FunctionCall IMLVal [IMLVal] -- Name [Parameters]
             | If IMLVal [IMLVal] [IMLVal] -- Condition [If Statements] [Else Statement]
             | While IMLVal [IMLVal] -- Condition [Statements]
+            | For IMLVal [IMLVal] -- Condition [Statements]
             | Assignment IMLVal IMLVal -- Name Expression
             deriving Show
 
@@ -190,7 +191,11 @@ parseFor :: Parser IMLVal
 parseFor = do
     spaces
     string "for"
-    return $ Message "TODO"
+    spaces
+    condition <- brackets parseIdent
+    spaces
+    statements <- braces parseStatementList
+    return $ For condition statements
 
 parseAssignment :: Parser IMLVal
 parseAssignment = do

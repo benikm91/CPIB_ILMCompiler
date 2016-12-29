@@ -13,7 +13,7 @@ data IMLFlowMode = In | Out | InOut
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLSign = Plus | Minus | Not
+data IMLOperation = Plus | Minus | Not
             deriving Show
 
 data IMLLiteral = IMLBool Bool | IMLInt Int
@@ -28,7 +28,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | RelOpr IMLVal IMLVal
             | AddOpr IMLVal IMLVal
             | MultOpr IMLVal IMLVal
-            | SignedVal IMLSign IMLVal
+            | MonadicOpr IMLOperation IMLVal
             | Literal IMLLiteral
             | Init
             | ExprList [IMLVal]
@@ -259,13 +259,16 @@ parseFactor =
     <|> try parseFalse
     <|> try parseNumber
     <|> try parseIdentFactor
-    <|> do
+    <|> try parseMonadicOpr
+    <|> try (brackets parseExpr)
+
+parseMonadicOpr :: Parser IMLVal
+parseMonadicOpr = do
     spaces
-    monadicOpr <- try parseMonadicOpr
+    opr <- try parseOpr
     spaces
     factor <- try parseFactor
-    return $ SignedVal monadicOpr factor
-    <|> try (brackets parseExpr)
+    return $ MonadicOpr opr factor
 
 parseIdentFactor :: Parser IMLVal
 parseIdentFactor = do
@@ -301,8 +304,8 @@ parseExprListInner = do
     expressions <- parseExpr `sepBy` (string ",")
     return expressions
 
-parseMonadicOpr :: Parser IMLSign
-parseMonadicOpr =
+parseOpr :: Parser IMLOperation
+parseOpr =
         parseChar '!' Not
     <|> parseChar '+' Plus
     <|> parseChar '-' Minus

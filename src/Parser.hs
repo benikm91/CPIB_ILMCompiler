@@ -354,4 +354,3 @@ parseString :: String -> a -> Parser a
 parseString s r = do
     string s
     return r
-

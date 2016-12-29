@@ -17,7 +17,7 @@ readAndCompile = do
 --compile = do y
   --program <- getLine
   --let res = compile program
-	--putStrLn res
+    --putStrLn res
 
 compile :: String -> String
-compile s = show (readExpr $ s)
+compile s = show (readExpr s)

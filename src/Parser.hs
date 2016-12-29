@@ -41,7 +41,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | For IMLVal [IMLVal] -- Condition [Statements]
             | Assignment IMLVal IMLVal -- Name Expression
             deriving Show
-
+            
 -- PRINT
 
 printTabs :: Int -> String
@@ -49,16 +49,16 @@ printTabs 0 = ""
 printTabs i = "\t" ++ printTabs (i-1)
 
 addTabs :: Int -> IMLVal -> String
-addTabs i val = (printTabs i) ++ (printIml i val)
+addTabs i val = printTabs i ++ printIml i val
 
 printTree :: IMLVal -> String
-printTree val = printIml 0 val
+printTree = printIml 0
 
 printIml :: Int -> IMLVal -> String
-printIml i (Program name params funcs states) = "Program" ++ (printIml i name) ++ "\n" ++ (printList i params) ++ "\n" ++ (printList i funcs) ++ "\n" ++ (printList i states)
+printIml i (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
 printIml i (Ident name) = "(Ident "++ name ++")"
 printIml i t@(IdentDeclaration changemode val imltype) = show t
-printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ (show imlFlowMode) ++ " " ++ (show imlChangeMode) ++ " " ++ (printIml i ident) ++ " " ++ (show imlType)
+printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printIml i ident ++ " " ++ show imlType
 printIml i t@(IdentFactor _ _) = show t
 printIml i t@(BoolOpr iMLVala iMLValb) = show t
 printIml i t@(RelOpr iMLVala iMLValb) = show t
@@ -66,16 +66,16 @@ printIml i t@(AddOpr iMLVala iMLValb) = show t
 printIml i t@(MultOpr iMLVala iMLValb) = show t
 printIml i t@(MonadicOpr iMLSign iMLVal) = show t
 printIml i t@(Literal iMLLiteral) = show t
-printIml i t@(Init) = show t
+printIml i t@Init = show t
 printIml i t@(ExprList iMLVals) = show t
 printIml i t@(Message string) = show t
-printIml i (FunctionDeclaration name params states) = "FunctionDeclaration " ++ (printIml i name) ++ "\n" ++ (printList (i) params) ++ "\n" ++ (printList (i) states)
-printIml i (FunctionCall name params) = "FunctionCall " ++ (printIml i name) ++ "\n" ++ (printList i params)
-printIml i (If condition ifStates elseStates) = "If " ++ (printIml i condition) ++ "\n" ++ (printList i ifStates) ++ "\n" ++ (printList i elseStates)
-printIml i (While condition states) = "While " ++ (printIml i condition) ++ "\n" ++ (printList i states)
+printIml i (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList (i) params ++ "\n" ++ printList (i) states
+printIml i (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
+printIml i (If condition ifStates elseStates) = "If " ++ printIml i condition ++ "\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
+printIml i (While condition states) = "While " ++ printIml i condition ++ "\n" ++ printList i states
 
 printList :: Int -> [IMLVal] -> String
-printList i vals = (printTabs i) ++ "[\n" ++ (concat (intersperse ",\n" $ map (addTabs (i+1)) vals)) ++ "\n" ++ (printTabs i) ++ "]"
+printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (addTabs (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"
 
 -- END PRINT
 

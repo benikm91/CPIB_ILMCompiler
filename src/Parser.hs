@@ -4,7 +4,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.Parsec.Token
 import System.Environment
 
-data IMLType = Int64
+data IMLType = Int
             deriving Show
 
 data IMLFlowMode = In | Out | InOut
@@ -58,7 +58,7 @@ parseProgram1 = do
 
 parseFunctionList :: Parser [IMLVal]
 parseFunctionList = do
-    functions <- parseFunction `sepBy` (string ",")
+    functions <- many parseFunction
     return functions
 
 parseFunction :: Parser IMLVal
@@ -127,8 +127,8 @@ parseTypedIdent = do
 
 parseType :: Parser IMLType
 parseType = do
-    string "int64"
-    return Int64
+    string "int"
+    return Int
 
 parseIdent :: Parser IMLVal
 parseIdent = do

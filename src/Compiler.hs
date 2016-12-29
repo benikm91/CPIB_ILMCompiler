@@ -3,6 +3,7 @@ module Compiler
     ) where
 
 import Parser
+import Data.String.Utils (replace)
 
 readAndCompile :: IO ()
 readAndCompile = do  
@@ -17,3 +18,5 @@ readAndCompile = do
 
 compile :: String -> String
 compile s = show (readExpr $ s)
+
+replaceNewLine = replace "\n" " "

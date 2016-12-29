@@ -290,7 +290,8 @@ parseIdent = do
                 tail <- many $ oneOf identChars
                 return $ Ident (head : tail)
 
--- TODO: parseExpr, parseTerm1, parseTerm2, parseTerm3 should be implemeted more nicely
+-- EXPR
+
 parseExpr :: Parser IMLVal
 parseExpr = do
         try parseBoolExpr

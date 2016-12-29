@@ -3,10 +3,11 @@ module Compiler
     ) where
 
 import Parser
+import Path
 
 readAndCompile :: IO ()
 readAndCompile = do
-    program <- readFile "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"
+    program <- readFile getFilePath
     -- "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"
     -- "E:/Users/Christian/Documents/FHNW/Semester5/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     -- "D:/OneDrive/Dokumente/FHNW-MightyTower/cpib/CPIB_ILMCompiler/sample/sample1.iml"
@@ -17,7 +18,7 @@ readAndCompile = do
 --compile = do y
   --program <- getLine
   --let res = compile program
-	--putStrLn res
+    --putStrLn res
 
 compile :: String -> String
-compile s = show (readExpr $ s)
+compile s = show (readExpr s)

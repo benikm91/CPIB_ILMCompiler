@@ -3,6 +3,7 @@ module Parser ( readExpr, printTree, IMLVal, IMLType, IMLFlowMode, IMLChangeMode
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.Parsec.Token hiding (braces, brackets)
 import System.Environment
+import Data.List
 
 data IMLType = Int
             deriving Show
@@ -37,20 +38,21 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | FunctionCall IMLVal [IMLVal] -- Name [Parameters]
             | If IMLVal [IMLVal] [IMLVal] -- Condition [If Statements] [Else Statement]
             | While IMLVal [IMLVal] -- Condition [Statements]
+            | For IMLVal [IMLVal] -- Condition [Statements]
             | Assignment IMLVal IMLVal -- Name Expression
             deriving Show
+            
+-- PRINT
 
--- Programm
--- [ParamDeclaration In Mutable (Ident "m") Int,ParamDeclaration In Mutable (Ident "n") Int,ParamDeclaration Out Mutable (Ident "o") Int]
--- [FunctionCall (Ident "func1") [Ident "m",Ident "o1"]] [FunctionCall
--- (Ident "func2") [Ident "m",Ident "o1"]],While (Ident "o1") [FunctionCall (Ident "func1") [Ident "m",Ident "o1"]],IdentDeclaration Mutable (Ident "o2") Int,FunctionCall (Ident "func2")
--- [Ident "n",Ident "o2"]]
+printTabs :: Int -> String
+printTabs 0 = ""
+printTabs i = "\t" ++ printTabs (i-1)
 
--- instance Show (IMLVal) where 
---     show Program name params funcs states = "Programm (Ident "++ name ++ ") ["++ show params ++"]"
---     show ParamDeclaration = 
+addTabs :: Int -> IMLVal -> String
+addTabs i val = printTabs i ++ printIml i val
 
 printTree :: IMLVal -> String
+<<<<<<< HEAD
 printTree (Program name params funcs states) = "Program" ++ (printTree name) ++ "\n" ++ (concat $ map printTree params) ++ "\n" ++ (concat $ map printTree funcs) ++ "\n" ++ (concat $ map printTree states)
 printTree (Ident name) = "(Ident "++ name ++")"
 printTree t@(IdentDeclaration changemode val imltype) = show t
@@ -69,6 +71,34 @@ printTree t@(FunctionDeclaration iMLVal iMLValsa iMLValsb) = show t -- Name [Par
 printTree t@(FunctionCall iMLVal iMLVals) = show t -- Name [Parameters]
 printTree t@(If iMLVal iMLValsa iMLValsb) = show t -- Condition [If Statements] [Else Statement]
 printTree t@(While iMLVal iMLVals) = show t -- Condition [Statements]
+=======
+printTree = printIml 0
+
+printIml :: Int -> IMLVal -> String
+printIml i (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
+printIml i (Ident name) = "(Ident "++ name ++")"
+printIml i t@(IdentDeclaration changemode val imltype) = show t
+printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printIml i ident ++ " " ++ show imlType
+printIml i t@(IdentFactor _ _) = show t
+printIml i t@(BoolOpr iMLVala iMLValb) = show t
+printIml i t@(RelOpr iMLVala iMLValb) = show t
+printIml i t@(AddOpr iMLVala iMLValb) = show t
+printIml i t@(MultOpr iMLVala iMLValb) = show t
+printIml i t@(MonadicOpr iMLSign iMLVal) = show t
+printIml i t@(Literal iMLLiteral) = show t
+printIml i t@Init = show t
+printIml i t@(ExprList iMLVals) = show t
+printIml i t@(Message string) = show t
+printIml i (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList (i) params ++ "\n" ++ printList (i) states
+printIml i (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
+printIml i (If condition ifStates elseStates) = "If " ++ printIml i condition ++ "\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
+printIml i (While condition states) = "While " ++ printIml i condition ++ "\n" ++ printList i states
+
+printList :: Int -> [IMLVal] -> String
+printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (addTabs (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"
+
+-- END PRINT
+>>>>>>> 3e2049c72858ae2b85b013cb7f432f6b35d907ea
 
 braces :: Parser a -> Parser a
 braces  = between (string "{") (string "}")
@@ -190,7 +220,11 @@ parseFor :: Parser IMLVal
 parseFor = do
     spaces
     string "for"
-    return $ Message "TODO"
+    spaces
+    condition <- brackets parseIdent
+    spaces
+    statements <- braces parseStatementList
+    return $ For condition statements
 
 parseAssignment :: Parser IMLVal
 parseAssignment = do

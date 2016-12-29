@@ -35,7 +35,8 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal]
             | Message String
             | FunctionDeclaration IMLVal [IMLVal] [IMLVal] -- Name [Parameters] [Statements]
             | FunctionCall IMLVal [IMLVal] -- Name [Parameters]
-            | If IMLVal [IMLVal] [IMLVal]
+            | If IMLVal [IMLVal] [IMLVal] -- Condition [If Statements] [Else Statement]
+            | While IMLVal [IMLVal] -- Condition [Statements]
             deriving Show
 
 braces :: Parser a -> Parser a
@@ -95,7 +96,7 @@ parseStatement =
     <|> try parseWhile
     <|> try parseFor
     <|> try parseFunctionCall
-    <|> try parseIdentDeclaration
+    <|> try parseIdentDeclaration 
     -- <|> try parseBecomes / Assignment
     <?> "Could not parse statement"
 
@@ -127,9 +128,12 @@ parseIf :: Parser IMLVal
 parseIf = do
     spaces
     string "if"
-    condition <- parseBraketStatement
+    spaces
+    condition <- brackets parseIdent
+    spaces
     ifStatements <- braces parseStatementList
-    elseStatements <- parseElse
+    spaces
+    elseStatements <- option [] parseElse
     return $ If condition ifStatements elseStatements
 
 parseElse :: Parser [IMLVal]
@@ -144,7 +148,12 @@ parseWhile :: Parser IMLVal
 parseWhile = do
     spaces
     string "while"
-    return $ Message "TODO"
+    spaces
+    condition <- brackets parseIdent
+    spaces
+    statements <- braces parseStatementList
+    spaces
+    return $ While condition statements
 
 parseFor :: Parser IMLVal
 parseFor = do
@@ -242,6 +251,7 @@ parseIdent = do
                 tail <- many $ oneOf identChars
                 return $ Ident (head : tail)
 
+{-
 parseFactor :: Parser IMLVal
 parseFactor = do
     spaces
@@ -305,4 +315,4 @@ parseMonadicOpr = do
     spaces
     char '-'
     return $ Minus
-
+-}

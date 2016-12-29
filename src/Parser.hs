@@ -284,10 +284,7 @@ parseNumber = do
     return $ Literal $ IMLInt literal
 
 parseInit :: Parser IMLVal
-parseInit = do
-    spaces
-    string "init"
-    return Init
+parseInit = parseString "init" Init
 
 parseExprList :: Parser IMLVal
 parseExprList  = do

@@ -79,8 +79,9 @@ parseStatement =
     <|> try parseIf
     <|> try parseWhile
     <|> try parseFor
-    <|> try parseIdentDeclaration
     <|> try parseFunctionCall
+    <|> try parseIdentDeclaration
+    -- <|> try parseBecomes / Assignment
     <?> "Could not parse statement"
 
 parseBraketStatement :: Parser IMLVal
@@ -95,11 +96,17 @@ parseFunctionCall = do
     spaces
     identName <- parseIdent
     spaces
-    -- HERE BUILD IN LITERALS
-    params <- brackets (parseIdent `sepBy` (string ","))
+    params <- brackets (parseArgument `sepBy` (string ","))
     spaces
     char ';'
     return $ FunctionCall identName params
+
+parseArgument :: Parser IMLVal
+parseArgument = do 
+    spaces
+    name <- parseIdent
+    return name
+    -- <|> parseLiteral TODO
 
 parseIf :: Parser IMLVal
 parseIf = do

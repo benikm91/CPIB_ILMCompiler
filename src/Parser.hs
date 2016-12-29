@@ -242,7 +242,6 @@ parseIdent = do
                 tail <- many $ oneOf identChars
                 return $ Ident (head : tail)
 
-
 parseFactor :: Parser IMLVal
 parseFactor = do
     spaces
@@ -306,9 +305,4 @@ parseMonadicOpr = do
     spaces
     char '-'
     return $ Minus
-
-
-main :: IO()
-main = print . readExpr $ "program HambbeKoenig {}"
-
 

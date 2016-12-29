@@ -1,4 +1,4 @@
-module Parser ( readExpr, IMLVal, IMLType, IMLFlowMode, IMLChangeMode ) where
+module Parser ( readExpr, printTree, IMLVal, IMLType, IMLFlowMode, IMLChangeMode ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.Parsec.Token hiding (braces, brackets)
@@ -38,6 +38,36 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | If IMLVal [IMLVal] [IMLVal] -- Condition [If Statements] [Else Statement]
             | While IMLVal [IMLVal] -- Condition [Statements]
             deriving Show
+
+-- Programm
+-- [ParamDeclaration In Mutable (Ident "m") Int,ParamDeclaration In Mutable (Ident "n") Int,ParamDeclaration Out Mutable (Ident "o") Int]
+-- [FunctionCall (Ident "func1") [Ident "m",Ident "o1"]] [FunctionCall
+-- (Ident "func2") [Ident "m",Ident "o1"]],While (Ident "o1") [FunctionCall (Ident "func1") [Ident "m",Ident "o1"]],IdentDeclaration Mutable (Ident "o2") Int,FunctionCall (Ident "func2")
+-- [Ident "n",Ident "o2"]]
+
+-- instance Show (IMLVal) where 
+--     show Program name params funcs states = "Programm (Ident "++ name ++ ") ["++ show params ++"]"
+--     show ParamDeclaration = 
+
+printTree :: IMLVal -> String
+printTree (Program name params funcs states) = "Program" ++ (printTree name) ++ "\n" ++ (concat $ map printTree params) ++ (concat $ map printTree funcs) ++ (concat $ map printTree states)
+printTree (Ident name) = "(Ident "++ name ++")"
+printTree (IdentDeclaration changemode val imltype) = "TODO"
+printTree (ParamDeclaration iMLFlowMode iMLChangeMode iMLVal iMLType) = "TODO"
+printTree (IdentFactor _) = "TODO"
+printTree (BoolOpr iMLVala iMLValb) = "TODO"
+printTree (RelOpr iMLVala iMLValb) = "TODO"
+printTree (AddOpr iMLVala iMLValb) = "TODO"
+printTree (MultOpr iMLVala iMLValb) = "TODO"
+printTree (SignedVal iMLSign iMLVal) = "TODO"
+printTree (Literal iMLLiteral) = "TODO"
+printTree (Init) = "TODO"
+printTree (ExprList iMLVals) = "TODO"
+printTree (Message string) = "TODO"
+printTree (FunctionDeclaration iMLVal iMLValsa iMLValsb) = "TODO" -- Name [Parameters] [Statements]
+printTree (FunctionCall iMLVal iMLVals) = "TODO" -- Name [Parameters]
+printTree (If iMLVal iMLValsa iMLValsb) = "TODO" -- Condition [If Statements] [Else Statement]
+printTree (While iMLVal iMLVals) = "TODO" -- Condition [Statements]
 
 braces :: Parser a -> Parser a
 braces  = between (string "{") (string "}")

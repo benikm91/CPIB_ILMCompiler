@@ -10,9 +10,10 @@ readAndCompile = do
     -- "E:\Users\Christian\Documents\FHNW\Semester5\cpib\CPIB_ILMCompiler\sample\sample1.iml"
     -- "D:\OneDrive\Dokumente\FHNW-MightyTower\cpib\CPIB_ILMCompiler\sample\sample1.iml"
     putStrLn $ "compiling " ++ program
-    putStrLn $ compile program
+    putStrLn (printTree $ readExpr program)
+    --putStrLn $ compile program
 
---compile = do 
+--compile = do y
   --program <- getLine
   --let res = compile program
 	--putStrLn res

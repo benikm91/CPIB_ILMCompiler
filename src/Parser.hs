@@ -13,11 +13,13 @@ data IMLFlowMode = In | Out | InOut
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLVal = Program [IMLVal] [IMLVal] IMLVal
+data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [Parameters] [Functions] [Statements]
             | Ident String
-            | IdentDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
+            | IdentDeclaration IMLChangeMode IMLVal IMLType
+            | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | Message String
-            | FunctionDeclaration IMLVal [IMLVal] --IMLVal
+            | FunctionDeclaration IMLVal [IMLVal] [IMLVal] -- Name [Parameters] [Statements]
+            | If IMLVal [IMLVal] [IMLVal]
             deriving Show
 
 readExpr :: String -> IMLVal
@@ -48,18 +50,72 @@ parseProgram1 = do
     params <- option [] parseParamList
     spaces
     char '{'
-    spaces 
     functions <- parseFunctionList
-    spaces
-    x <- many (noneOf "}")
-    spaces
+    statements <- parseStatementList
     char '}'
-    return $ Program params functions name
+    return $ Program name params functions statements
 
 parseFunctionList :: Parser [IMLVal]
 parseFunctionList = do
     functions <- many parseFunction
     return functions
+
+parseStatementList :: Parser [IMLVal]
+parseStatementList =  do
+    spaces
+    statements <- many parseStatement
+    spaces
+    return statements
+
+parseStatement = try parseBraketStatement
+    <|> try parseIf
+    <|> try parseWhile
+    <|> try parseFor
+    <|> try parseIdentDeclaration
+    -- <?> "Could not parse statement"
+
+parseBraketStatement :: Parser IMLVal
+parseBraketStatement = do 
+    spaces
+    char '('
+    statement <- parseStatement
+    char ')'
+    spaces
+    return statement
+
+parseIf :: Parser IMLVal
+parseIf = do
+    spaces
+    string "if"
+    condition <- parseBraketStatement
+    char '{'
+    ifStatements <- parseStatementList
+    char '}'
+    elseStatements <- parseElse
+    return $ If condition ifStatements elseStatements
+
+parseElse :: Parser [IMLVal]
+parseElse = do
+    spaces
+    string "else"
+    spaces
+    char '{'
+    statements <- parseStatementList
+    char '}'
+    return statements
+
+parseWhile :: Parser IMLVal
+parseWhile = do
+    spaces
+    string "while"
+    return $ Message "TODO"
+
+parseFor :: Parser IMLVal
+parseFor = do
+    spaces
+    string "for"
+    return $ Message "TODO"
+
 
 parseFunction :: Parser IMLVal
 parseFunction = do
@@ -71,12 +127,10 @@ parseFunction = do
     params <- parseParamList
     spaces
     char '{'
-    spaces 
-    x <- many (noneOf "}")
-    spaces
+    statements <- parseStatementList
     char '}'
     spaces
-    return $ FunctionDeclaration identName params
+    return $ FunctionDeclaration identName params statements
 
 parseParamList :: Parser [IMLVal]
 parseParamList = do
@@ -95,7 +149,16 @@ parseParam = do
     changeMode <- parseChangeMode
     spaces
     (identName, identType) <- parseTypedIdent
-    return $ IdentDeclaration flowMode changeMode identName identType
+    return $ ParamDeclaration flowMode changeMode identName identType
+
+parseIdentDeclaration :: Parser IMLVal
+parseIdentDeclaration = do 
+    spaces
+    changeMode <- parseChangeMode
+    (identName, identType) <- parseTypedIdent
+    spaces
+    char ';'
+    return $ IdentDeclaration changeMode identName identType
 
 parseFlowMode :: Parser IMLFlowMode
 parseFlowMode = option InOut $ do 
@@ -109,7 +172,19 @@ parseFlowMode = option InOut $ do
     return InOut
 
 parseChangeMode :: Parser IMLChangeMode
-parseChangeMode = option Mutable parseConst
+parseChangeMode = try parseVal
+    <|> parseVar
+    <|> option Mutable parseConst
+
+parseVal :: Parser IMLChangeMode
+parseVal = do 
+    string "val"
+    return Const
+
+parseVar :: Parser IMLChangeMode
+parseVar = do 
+    string "var"
+    return Mutable
 
 parseConst :: Parser IMLChangeMode
 parseConst = do 
@@ -118,6 +193,7 @@ parseConst = do
 
 parseTypedIdent :: Parser (IMLVal, IMLType)
 parseTypedIdent = do
+    spaces
     identName <- parseIdent
     spaces
     char ':'

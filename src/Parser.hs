@@ -37,6 +37,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | FunctionCall IMLVal [IMLVal] -- Name [Parameters]
             | If IMLVal [IMLVal] [IMLVal] -- Condition [If Statements] [Else Statement]
             | While IMLVal [IMLVal] -- Condition [Statements]
+            | Assignment IMLVal IMLVal -- Name Expression
             deriving Show
 
 braces :: Parser a -> Parser a
@@ -161,6 +162,16 @@ parseFor = do
     string "for"
     return $ Message "TODO"
 
+parseAssignment :: Parser IMLVal
+parseAssignment = do
+    spaces
+    identName <- parseIdent
+    spaces
+    string ":="
+    spaces
+    expression <- parseExpr
+    return $ Assignment identName expression
+
 
 parseFunction :: Parser IMLVal
 parseFunction = do
@@ -256,33 +267,40 @@ parseExpr = do
     return $ Message "TODO"
 
 parseFactor :: Parser IMLVal
-parseFactor = do
-    spaces
-    try $ string "true"
-    return $ Literal $ IMLBool True
-    <|> do
-    try $ string "false"
-    return $ Literal $ IMLBool False
-    <|> do
-    literal <- try $ read <$> many1 digit
-    return $ Literal $ IMLInt literal
+parseFactor = 
+        try parseTrue
+    <|> try parseFalse
+    <|> try parseNumber
     <|> do
     ident <- try parseIdent
     spaces
     identAddition <- try $ optionMaybe (choice [ parseInit, parseExprList ])
     return $ IdentFactor identAddition
     <|> do
+    spaces
     monadicOpr <- try parseMonadicOpr
     spaces
     factor <- try parseFactor
     return $ SignedVal monadicOpr factor
-    <|> do
-    char '('
+    <|> try (brackets parseExpr)
+
+-- TODO Perhaps parseTrue, parseFalse, parseNumber as where functions :) not sure
+parseTrue :: Parser IMLVal
+parseTrue = do
     spaces
-    expr <- parseExpr
+    try $ string "true"
+    return $ Literal $ IMLBool True
+
+parseFalse :: Parser IMLVal
+parseFalse = do
     spaces
-    char ')'
-    return expr
+    try $ string "false"
+    return $ Literal $ IMLBool False
+
+parseNumber :: Parser IMLVal
+parseNumber = do
+    literal <- try $ read <$> many1 digit
+    return $ Literal $ IMLInt literal
 
 parseInit :: Parser IMLVal
 parseInit = do
@@ -293,11 +311,7 @@ parseInit = do
 parseExprList :: Parser IMLVal
 parseExprList  = do
     spaces
-    char '('
-    spaces
-    exprList <- option [] parseExprListInner
-    spaces
-    char ')'
+    exprList <- (brackets $ option [] parseExprListInner)
     return $ ExprList exprList
 
 parseExprListInner :: Parser [IMLVal]
@@ -306,16 +320,13 @@ parseExprListInner = do
     return expressions
 
 parseMonadicOpr :: Parser IMLSign
-parseMonadicOpr = do
-    spaces
-    char '!'
-    return Not
-    <|> do
-    spaces
-    char '+'
-    return $ Plus
-    <|> do
-    spaces
-    char '-'
-    return $ Minus
+parseMonadicOpr =
+        parseChar '!' Not
+    <|> parseChar '+' Plus
+    <|> parseChar '-' Minus
+
+parseChar :: Char -> a -> Parser a
+parseChar c r = do 
+    char c
+    return r
 

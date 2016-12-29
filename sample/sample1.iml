@@ -3,8 +3,4 @@ prog euklid(in m: int, in n: int, out o: int) {
   def func2(in n: int, out o: int) {}
 
   var o1: int;
-  func1(m, o1);
-  var o2: int;
-  func2(n, o2)
-  o := o1 + o2;
 }

@@ -1,7 +1,7 @@
 module Parser ( readExpr, IMLVal, IMLType, IMLFlowMode, IMLChangeMode ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
-import Text.Parsec.Token
+import Text.Parsec.Token hiding (braces, brackets)
 import System.Environment
 
 data IMLType = Int
@@ -19,8 +19,14 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [Parameters] [F
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | Message String
             | FunctionDeclaration IMLVal [IMLVal] [IMLVal] -- Name [Parameters] [Statements]
+            | FunctionCall IMLVal [IMLVal] -- Name [Parameters]
             | If IMLVal [IMLVal] [IMLVal]
             deriving Show
+
+braces :: Parser a -> Parser a
+braces  = between (string "{") (string "}")
+brackets :: Parser a -> Parser a
+brackets  = between (string "(") (string ")")
 
 readExpr :: String -> IMLVal
 readExpr input = case parse parseProgram "Hambbe" input of
@@ -49,6 +55,7 @@ parseProgram1 = do
     name <- parseIdent
     params <- option [] parseParamList
     spaces
+    -- TODO use braces here :)
     char '{'
     functions <- parseFunctionList
     statements <- parseStatementList
@@ -67,30 +74,39 @@ parseStatementList =  do
     spaces
     return statements
 
-parseStatement = try parseBraketStatement
+parseStatement = 
+        try parseBraketStatement
     <|> try parseIf
     <|> try parseWhile
     <|> try parseFor
     <|> try parseIdentDeclaration
-    -- <?> "Could not parse statement"
+    <|> try parseFunctionCall
+    <?> "Could not parse statement"
 
 parseBraketStatement :: Parser IMLVal
 parseBraketStatement = do 
     spaces
-    char '('
-    statement <- parseStatement
-    char ')'
+    statement <- brackets parseStatement
     spaces
     return statement
+
+parseFunctionCall :: Parser IMLVal
+parseFunctionCall = do
+    spaces
+    identName <- parseIdent
+    spaces
+    -- HERE BUILD IN LITERALS
+    params <- brackets (parseIdent `sepBy` (string ","))
+    spaces
+    char ';'
+    return $ FunctionCall identName params
 
 parseIf :: Parser IMLVal
 parseIf = do
     spaces
     string "if"
     condition <- parseBraketStatement
-    char '{'
-    ifStatements <- parseStatementList
-    char '}'
+    ifStatements <- braces parseStatementList
     elseStatements <- parseElse
     return $ If condition ifStatements elseStatements
 
@@ -99,9 +115,7 @@ parseElse = do
     spaces
     string "else"
     spaces
-    char '{'
-    statements <- parseStatementList
-    char '}'
+    statements <- braces parseStatementList
     return statements
 
 parseWhile :: Parser IMLVal
@@ -126,19 +140,13 @@ parseFunction = do
     spaces
     params <- parseParamList
     spaces
-    char '{'
-    statements <- parseStatementList
-    char '}'
+    statements <- braces parseStatementList
     spaces
     return $ FunctionDeclaration identName params statements
 
 parseParamList :: Parser [IMLVal]
 parseParamList = do
-    char '('
-    spaces
-    params <- parseParam `sepBy` (string ",")
-    spaces
-    char ')'
+    params <- brackets (parseParam `sepBy` (string ","))
     return params
 
 parseParam :: Parser IMLVal
@@ -214,3 +222,5 @@ parseIdent = do
 
 main :: IO()
 main = print . readExpr $ "program HambbeKoenig {}"
+
+

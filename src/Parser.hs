@@ -187,7 +187,7 @@ parseWhile = do
     spaces
     string "while"
     spaces
-    condition <- brackets parseIdent
+    condition <- brackets parseExpr
     spaces
     statements <- braces parseStatementList
     spaces
@@ -198,7 +198,7 @@ parseFor = do
     spaces
     string "for"
     spaces
-    condition <- brackets parseIdent
+    condition <- brackets parseExpr
     spaces
     statements <- braces parseStatementList
     return $ For condition statements

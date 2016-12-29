@@ -12,7 +12,9 @@ prog euklid(in m: int, in n: int, out o: int) {
   if (true = (false &? false)) {
     var hambbe: int;
   }
-  while (o1) {
+  var a: int;
+  var b: int;
+  while (a init > b init) {
     func1(m, o1);
     func3(m, o1);
   }

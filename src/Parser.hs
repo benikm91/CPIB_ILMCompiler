@@ -211,15 +211,10 @@ parseIdentDeclaration = do
     return $ IdentDeclaration changeMode identName identType
 
 parseFlowMode :: Parser IMLFlowMode
-parseFlowMode = option InOut $ do 
-    (string "in")
-    return In
-    <|> do 
-    (string "out")
-    return Out
-    <|> do 
-    (string "inout")
-    return InOut
+parseFlowMode = option InOut $ 
+        parseString "in" In
+    <|> parseString "out" Out
+    <|> parseString "InOut" InOut
 
 parseChangeMode :: Parser IMLChangeMode
 parseChangeMode = try parseVal
@@ -227,19 +222,13 @@ parseChangeMode = try parseVal
     <|> option Mutable parseConst
 
 parseVal :: Parser IMLChangeMode
-parseVal = do 
-    string "val"
-    return Const
+parseVal = parseString "val" Const
 
 parseVar :: Parser IMLChangeMode
-parseVar = do 
-    string "var"
-    return Mutable
+parseVar = parseString "var" Mutable
 
 parseConst :: Parser IMLChangeMode
-parseConst = do 
-    string "const"
-    return Const
+parseConst = parseString "const" Const
 
 parseTypedIdent :: Parser (IMLVal, IMLType)
 parseTypedIdent = do
@@ -252,9 +241,7 @@ parseTypedIdent = do
     return (identName, identType)
 
 parseType :: Parser IMLType
-parseType = do
-    string "int"
-    return Int
+parseType = parseString "int" Int
 
 parseIdent :: Parser IMLVal
 parseIdent = do
@@ -290,16 +277,10 @@ parseIdentFactor = do
 
 -- TODO Perhaps parseTrue, parseFalse, parseNumber as where functions :) not sure
 parseTrue :: Parser IMLVal
-parseTrue = do
-    spaces
-    try $ string "true"
-    return $ Literal $ IMLBool True
+parseTrue = parseString "true" (Literal $ IMLBool True)
 
 parseFalse :: Parser IMLVal
-parseFalse = do
-    spaces
-    try $ string "false"
-    return $ Literal $ IMLBool False
+parseFalse = parseString "false" (Literal $ IMLBool False)
 
 parseNumber :: Parser IMLVal
 parseNumber = do
@@ -307,10 +288,7 @@ parseNumber = do
     return $ Literal $ IMLInt literal
 
 parseInit :: Parser IMLVal
-parseInit = do
-    spaces
-    string "init"
-    return Init
+parseInit = parseString "init" Init
 
 parseExprList :: Parser IMLVal
 parseExprList  = do
@@ -332,5 +310,10 @@ parseMonadicOpr =
 parseChar :: Char -> a -> Parser a
 parseChar c r = do 
     char c
+    return r
+
+parseString :: String -> a -> Parser a
+parseString s r = do
+    string s
     return r
 

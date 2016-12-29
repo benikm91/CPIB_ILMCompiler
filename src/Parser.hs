@@ -7,16 +7,17 @@ import System.Environment
 data IMLType = Int64
             deriving Show
 
-data IMLFlowMode = In | Out
+data IMLFlowMode = In | Out | InOut
             deriving Show
 
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLVal = Program [IMLVal] IMLVal
+data IMLVal = Program [IMLVal] [IMLVal] IMLVal
             | Ident String
-            | IdentDeclaration (Maybe IMLFlowMode) IMLChangeMode IMLVal IMLType
+            | IdentDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | Message String
+            | FunctionDeclaration IMLVal [IMLVal] --IMLVal
             deriving Show
 
 readExpr :: String -> IMLVal
@@ -41,31 +42,55 @@ parseProgram = parseProgram1
 
 parseProgram1 :: Parser IMLVal
 parseProgram1 = do
-    string "program"
+    string "prog"
     spaces
     name <- parseIdent
-    params <- option [] parseProgParamList
+    params <- option [] parseParamList
+    spaces
+    char '{'
+    spaces 
+    functions <- parseFunctionList
+    spaces
+    x <- many (noneOf "}")
+    spaces
+    char '}'
+    return $ Program params functions name
+
+parseFunctionList :: Parser [IMLVal]
+parseFunctionList = do
+    functions <- parseFunction `sepBy` (string ",")
+    return functions
+
+parseFunction :: Parser IMLVal
+parseFunction = do
+    spaces
+    string "def"
+    spaces
+    identName <- parseIdent
+    spaces
+    params <- parseParamList
     spaces
     char '{'
     spaces 
     x <- many (noneOf "}")
     spaces
     char '}'
-    return $ Program params name
+    spaces
+    return $ FunctionDeclaration identName params
 
-parseProgParamList :: Parser [IMLVal]
-parseProgParamList = do
+parseParamList :: Parser [IMLVal]
+parseParamList = do
     char '('
     spaces
-    params <- parseProgParam `sepBy` (string ",")
+    params <- parseParam `sepBy` (string ",")
     spaces
     char ')'
     return params
 
-parseProgParam :: Parser IMLVal
-parseProgParam = do
+parseParam :: Parser IMLVal
+parseParam = do
     spaces
-    flowMode <- optionMaybe parseFlowMode
+    flowMode <- parseFlowMode
     spaces
     changeMode <- parseChangeMode
     spaces
@@ -73,12 +98,15 @@ parseProgParam = do
     return $ IdentDeclaration flowMode changeMode identName identType
 
 parseFlowMode :: Parser IMLFlowMode
-parseFlowMode = do 
+parseFlowMode = option InOut $ do 
     (string "in")
     return In
     <|> do 
     (string "out")
     return Out
+    <|> do 
+    (string "inout")
+    return InOut
 
 parseChangeMode :: Parser IMLChangeMode
 parseChangeMode = option Mutable parseConst

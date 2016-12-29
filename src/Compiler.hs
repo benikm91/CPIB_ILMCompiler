@@ -6,9 +6,9 @@ import Parser
 
 readAndCompile :: IO ()
 readAndCompile = do  
-    -- program <- getContents  
-    putStrLn $ "compiling " -- ++ program
-    putStrLn $ compile "program intDiv(in  const m:int64, in  const n:int64, out const q:int64, out const r:int64) {}"  
+    program <- readFile "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"  
+    putStrLn $ "compiling " ++ program
+    putStrLn $ compile program
 
 --compile = do 
   --program <- getLine

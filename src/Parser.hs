@@ -67,9 +67,9 @@ printIml i t@(ExprList iMLVals) = show t
 printIml i t@(Message string) = show t
 printIml i (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList (i) params ++ "\n" ++ printList (i) states
 printIml i (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
-printIml i (If condition ifStates elseStates) = "If " ++ printIml i condition ++ "\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
-printIml i (While condition states) = "While " ++ printIml i condition ++ "\n" ++ printList i states
-printIml i t@(DyadicOpr op term1 term2) = show t
+printIml i (If condition ifStates elseStates) = "If \n" ++ printTabs i ++ "(\n" ++ printTabs (i+1) ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
+printIml i (While condition states) = "While \n" ++ printTabs i ++ "(\n" ++ printTabs (i+1) ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
+printIml i t@(DyadicOpr op term1 term2) = "DyadicOpr " ++ show op ++ "\n" ++ printTabs i ++ "(\n" ++ printTabs (i+1) ++ printIml (i+1) term1 ++ ",\n" ++ printTabs (i+1) ++ printIml (i+1) term2 ++ "\n" ++ printTabs i ++ ")"
 
 printList :: Int -> [IMLVal] -> String
 printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (addTabs (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"

@@ -13,7 +13,10 @@ data IMLFlowMode = In | Out | InOut
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLOperation = Plus | Minus | Not
+data IMLOperation = Times
+            | Plus | Minus
+            | Lt | Ge | Eq | Ne | Gt | Le
+            | And | Or | Not
             deriving Show
 
 data IMLLiteral = IMLBool Bool | IMLInt Int
@@ -24,10 +27,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | IdentDeclaration IMLChangeMode IMLVal IMLType
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | IdentFactor IMLVal (Maybe IMLVal)
-            | BoolOpr IMLVal IMLVal
-            | RelOpr IMLVal IMLVal
-            | AddOpr IMLVal IMLVal
-            | MultOpr IMLVal IMLVal
+            | DyadicOpr IMLOperation IMLVal IMLVal
             | MonadicOpr IMLOperation IMLVal
             | Literal IMLLiteral
             | Init
@@ -56,10 +56,10 @@ printTree (Ident name) = "(Ident "++ name ++")"
 printTree t@(IdentDeclaration changemode val imltype) = show t
 printTree t@(ParamDeclaration iMLFlowMode iMLChangeMode iMLVal iMLType) = show t
 printTree t@(IdentFactor _ _) = show t
-printTree t@(BoolOpr iMLVala iMLValb) = show t
-printTree t@(RelOpr iMLVala iMLValb) = show t
-printTree t@(AddOpr iMLVala iMLValb) = show t
-printTree t@(MultOpr iMLVala iMLValb) = show t
+--printTree t@(BoolOpr iMLVala iMLValb) = show t
+--printTree t@(RelOpr iMLVala iMLValb) = show t
+--printTree t@(AddOpr iMLVala iMLValb) = show t
+--printTree t@(MultOpr iMLVala iMLValb) = show t
 printTree t@(MonadicOpr iMLSign iMLVal) = show t
 printTree t@(Literal iMLLiteral) = show t
 printTree t@(Init) = show t
@@ -281,7 +281,150 @@ parseIdent = do
 
 parseExpr :: Parser IMLVal
 parseExpr = do 
-    return $ Message "TODO"
+    term <- try parseTerm1
+    return try parseBoolExpr term <|> term
+
+parseTerm1 :: Parser IMLVal
+parseTerm1 = do 
+    term <- parseTerm2
+    return $ option term $ parseRelExpr term
+
+parseTerm2 :: Parser IMLVal
+parseTerm2 = do 
+    term <- parseTerm3
+    return $ option term $ parseRelExpr term
+
+parseTerm3 :: Parser IMLVal
+parseTerm3 = do 
+    term <- parseFactor
+    return $ option term $ parseRelExpr term
+
+-- BOOLEXPR
+
+parseBoolExpr :: Parser IMLVal -> Parser IMLVal
+parseBoolExpr firstTerm = do
+    opr <- try parseBoolOpr
+    spaces
+    secondTerm <- try parseExpr
+    return DyadicOpr opr firstTerm secondTerm
+
+parseBoolOpr :: Parser IMLVal
+parseBoolOpr = do
+        try parseAnd
+    <|> try parseOr
+
+parseAnd :: Parser IMLOperation
+parseAnd = do
+    spaces
+    try string "&?"
+    return And
+
+parseOr :: Parser IMLOperation
+parseOr = do
+    spaces
+    try string "|?"
+    return Or
+
+-- RELEXPR
+
+parseRelExpr :: IMLVal -> Parser IMLVal
+parseRelExpr firstTerm = do
+    opr <- try parseRelOpr
+    spaces
+    secondTerm <- try parseTerm2
+    return DyadicOpr opr firstTerm secondTerm
+
+parseRelOpr :: Parser IMLVal
+parseRelOpr = do
+        try parseEq
+    <|> try parseNe
+    <|> try parseLt
+    <|> try parseGt
+    <|> try parseLe
+    <|> try parseGe
+
+parseEq :: Parser IMLOperation
+parseEq = do
+    spaces
+    try string "="
+    return Eq
+
+parseNe :: Parser IMLOperation
+parseNe = do
+    spaces
+    try string "/="
+    return Ne
+
+parseLt :: Parser IMLOperation
+parseLt = do
+    spaces
+    try string "<"
+    return Lt
+
+parseGt :: Parser IMLOperation
+parseGt = do
+    spaces
+    try string ">"
+    return Gt
+
+parseLe :: Parser IMLOperation
+parseLe = do
+    spaces
+    try string "<="
+    return Le
+
+parseGe :: Parser IMLOperation
+parseGe = do
+    spaces
+    try string ">="
+    return Ge
+
+-- ADDEXPR
+
+parseAddExpr :: IMLVal -> Parser IMLVal
+parseAddExpr firstTerm = do
+    opr <- try parseAddOpr
+    spaces
+    secondTerm <- try parseTerm2
+    return DyadicOpr opr firstTerm secondTerm
+
+parseAddOpr :: Parser IMLVal
+parseAddOpr = do
+        try parseAnd
+    <|> try parseOr
+
+parsePlus :: Parser IMLOperation
+parsePlus = do
+    spaces
+    try string "+"
+    return Plus
+
+parseMinus :: Parser IMLOperation
+parseMinus = do
+    spaces
+    try string "-"
+    return Minus
+
+-- MULEXPR
+
+parseMulExpr :: IMLVal -> Parser IMLVal
+parseMulExpr firstTerm = do
+    opr <- try parseMulOpr
+    spaces
+    secondTerm <- try parseTerm3
+    return DyadicOpr opr firstTerm secondTerm
+
+parseMulOpr :: Parser IMLVal
+parseMulOpr = do
+        try parseTimes
+
+parseTimes :: Parser IMLOperation
+parseTimes = do
+    spaces
+    try string "*"
+    return Times
+
+-- FACTOR
 
 parseFactor :: Parser IMLVal
 parseFactor = 

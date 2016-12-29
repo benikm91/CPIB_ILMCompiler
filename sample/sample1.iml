@@ -4,6 +4,7 @@ prog euklid(in m: int, in n: int, out o: int) {
 
   var o1: int;
   if (o1) {
+    var b: int;
     func1(m, o1);
   } else {
     func2(m, o1);

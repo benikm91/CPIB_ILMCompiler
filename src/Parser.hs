@@ -58,7 +58,7 @@ printIml :: Int -> IMLVal -> String
 printIml i (Program name params funcs states) = "Program" ++ (printIml i name) ++ "\n" ++ (printList i params) ++ "\n" ++ (printList i funcs) ++ "\n" ++ (printList i states)
 printIml i (Ident name) = "(Ident "++ name ++")"
 printIml i t@(IdentDeclaration changemode val imltype) = show t
-printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ (show imlFlowMode) ++ (show imlChangeMode) ++ (printIml i ident) ++ (show imlType)
+printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ (show imlFlowMode) ++ " " ++ (show imlChangeMode) ++ " " ++ (printIml i ident) ++ " " ++ (show imlType)
 printIml i t@(IdentFactor _ _) = show t
 printIml i t@(BoolOpr iMLVala iMLValb) = show t
 printIml i t@(RelOpr iMLVala iMLValb) = show t

@@ -13,9 +13,24 @@ data IMLFlowMode = In | Out
 data IMLChangeMode = Const | Mutable
             deriving Show
 
+data IMLSign = Plus | Minus | Not
+            deriving Show
+
+data IMLLiteral = IMLBool Bool | IMLInt Int
+            deriving Show
+
 data IMLVal = Program [IMLVal] IMLVal
             | Ident String
             | IdentDeclaration (Maybe IMLFlowMode) IMLChangeMode IMLVal IMLType
+            | IdentFactor (Maybe IMLVal)
+            | BoolOpr IMLVal IMLVal
+            | RelOpr IMLVal IMLVal
+            | AddOpr IMLVal IMLVal
+            | MultOpr IMLVal IMLVal
+            | SignedVal IMLSign IMLVal
+            | Literal IMLLiteral
+            | Init
+            | ExprList [IMLVal]
             | Message String
             deriving Show
 
@@ -107,6 +122,72 @@ parseIdent = do
                 head <- oneOf identStartChars
                 tail <- many $ oneOf identChars
                 return $ Ident (head : tail)
+
+
+parseFactor :: Parser IMLVal
+parseFactor = do
+    spaces
+    try string "true"
+    return $ Literal $ IMLBool True
+    <|> do
+    try string "false"
+    return $ Literal $ IMLBool False
+    <|> do
+    literal <- try many1 digit
+    return $ Literal $ IMLInt literal
+    <|> do
+    ident <- parseIdent
+    spaces
+    identAddition <- optionMaybe (choice [ parseInit, parseExprList ])
+    return $ IdentFactor identAddition
+    <|> do
+    monadicOpr <- parseMonadicOpr
+    spaces
+    factor <- parseFactor
+    return $ SignedVal monadicOpr factor
+    <|> do
+    char '('
+    spaces
+    expr <- parseExpr
+    spaces
+    char ')'
+    return expr
+
+parseInit :: Parsec IMLVal
+parseInit = do
+    spaces
+    string "init"
+    return Init
+
+parseExprList :: Parser IMLVal
+parseExprList  = do
+    spaces
+    char '('
+    spaces
+    exprList <- option [] parseExprListInner
+    spaces
+    char ')'
+    return $ ExprList exprList
+
+parseExprListInner :: Parser [IMLVal]
+parseExprListInner  = do
+    expressions <- parseExpr `sepBy` (string ",")
+    return expressions
+
+parseMonadicOpr :: Parser IMLSign
+parseMonadicOpr = do
+    spaces
+    char '!'
+    return Not
+    <|> do
+    spaces
+    char '+'
+    return $ Plus
+    <|> do
+    spaces
+    char '-'
+    return $ Minus
+
 
 main :: IO()
 main = print . readExpr $ "program HambbeKoenig {}"

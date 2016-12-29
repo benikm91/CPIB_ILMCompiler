@@ -251,26 +251,30 @@ parseIdent = do
                 tail <- many $ oneOf identChars
                 return $ Ident (head : tail)
 
+parseExpr :: Parser IMLVal
+parseExpr = do 
+    return $ Message "TODO"
+
 parseFactor :: Parser IMLVal
 parseFactor = do
     spaces
-    try string "true"
+    try $ string "true"
     return $ Literal $ IMLBool True
     <|> do
-    try string "false"
+    try $ string "false"
     return $ Literal $ IMLBool False
     <|> do
-    literal <- try many1 digit
+    literal <- try $ read <$> many1 digit
     return $ Literal $ IMLInt literal
     <|> do
-    ident <- parseIdent
+    ident <- try parseIdent
     spaces
-    identAddition <- optionMaybe (choice [ parseInit, parseExprList ])
+    identAddition <- try $ optionMaybe (choice [ parseInit, parseExprList ])
     return $ IdentFactor identAddition
     <|> do
-    monadicOpr <- parseMonadicOpr
+    monadicOpr <- try parseMonadicOpr
     spaces
-    factor <- parseFactor
+    factor <- try parseFactor
     return $ SignedVal monadicOpr factor
     <|> do
     char '('
@@ -280,7 +284,7 @@ parseFactor = do
     char ')'
     return expr
 
-parseInit :: Parsec IMLVal
+parseInit :: Parser IMLVal
 parseInit = do
     spaces
     string "init"
@@ -297,7 +301,7 @@ parseExprList  = do
     return $ ExprList exprList
 
 parseExprListInner :: Parser [IMLVal]
-parseExprListInner  = do
+parseExprListInner = do
     expressions <- parseExpr `sepBy` (string ",")
     return expressions
 

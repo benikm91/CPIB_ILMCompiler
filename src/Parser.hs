@@ -19,7 +19,7 @@ data IMLSign = Plus | Minus | Not
 data IMLLiteral = IMLBool Bool | IMLInt Int
             deriving Show
 
-data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] 
+data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclarations] [FunctionDeclarations] [Statements]
             | Ident String
             | IdentDeclaration IMLChangeMode IMLVal IMLType
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType

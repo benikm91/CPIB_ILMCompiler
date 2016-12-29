@@ -1,6 +1,7 @@
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 
+module Scanner ( scanner ) where
 
 readExpr :: String -> IMLVal
 readExpr input = case parse parseProgram "Hambbe" input of

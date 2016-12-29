@@ -1,19 +1,19 @@
 module Compiler
-    ( someFunc
+    ( readAndCompile
     ) where
 
-import Scanner
+import Parser
 
-someFunc :: IO ()
-someFunc = do  
-    program <- getContents  
-    putStrLn $ "compiling " ++ program
-    putStrLn $ compile program  
+readAndCompile :: IO ()
+readAndCompile = do  
+    -- program <- getContents  
+    putStrLn $ "compiling " -- ++ program
+    putStrLn $ compile "program HambbeKoenig(in  const m:int64) {}"  
 
---someFunc = do 
+--compile = do 
   --program <- getLine
   --let res = compile program
 	--putStrLn res
 
 compile :: String -> String
-compile s = concat $ map (( "(" ++) .(++ ") ") . show) (scanner s)
+compile s = show (readExpr $ s)

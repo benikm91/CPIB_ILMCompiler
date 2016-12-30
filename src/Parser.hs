@@ -58,7 +58,7 @@ printIml i t = printTabs i ++ printElement t
     where printElement (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
           printElement (Ident name) = "(Ident "++ name ++")"
           printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
-          printElement (Assignment name expression) = "Assignment" ++ printIml i name ++ " := " ++ printIml i expression
+          printElement (Assignment name expression) = "Assignment" ++ show name ++ " := " ++ show expression
           printElement (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
           printElement (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
           printElement (If condition ifStates elseStates) = "If \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates

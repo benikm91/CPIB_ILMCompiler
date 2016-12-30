@@ -10,11 +10,22 @@ import Data.Array
 import Data.Monoid
 import CheckedArithmetic
 
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
+
+snd3 :: (a, b, c) -> b
+snd3 (_, b, _) = b
+
 -- TODO WHY DO WE HAVE TO HAVE SUCH SHIT!!!
 fromRight :: Either a b -> b
 fromRight (Right b) = b
 fromRight _ = error "Not left"
 
+neg :: Instruction
+neg = Neg Int32VmTy mempty
+
+loadAddress :: Int -> Instruction
+loadAddress addr = LoadIm IntVmTy (IntVmVal addr)
 
 loadIm32 :: Integer -> Instruction
 loadIm32 val = LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 val))
@@ -24,6 +35,12 @@ input32 name = Input (IntTy 32) mempty name
 
 output32 :: String -> Instruction
 output32 name = Output (IntTy 32) name
+
+deref :: Instruction
+deref = Deref
+
+store :: Instruction
+store = Store
 
 -- data Scope = Local | Global
 -- data Access = Direct | Indirect
@@ -44,8 +61,20 @@ addLocalIdent :: Enviroment -> Ident -> Enviroment
 -- TODO Check if Ident already exists => Throw error
 addLocalIdent = error "HALLO2" 
 
+findInScope :: Scope -> String -> Maybe Ident
+findInScope (_, []) _ = Nothing
+findInScope (sp, next : rest) name = if (fst3 next) == name then Just next else findInScope (sp, rest) name 
+
 getIdent :: Enviroment -> String -> Ident
-getIdent = error "HALLO"
+getIdent (global, []) name = case findInScope global name of 
+    Nothing -> error $ "Identifier " ++ name ++ " not found!"
+    Just a -> a
+getIdent (global, next : rest) name = case findInScope next name of
+    Nothing -> getIdent (global, rest) name
+    Just a -> a
+
+getIdentAddress :: Enviroment -> String -> Address
+getIdentAddress a b = (snd3 (getIdent a b))
 
 toArray :: [a] -> Array Int a
 toArray l = array (0, length l - 1)  (zip [0 .. length l - 1] l)
@@ -55,8 +84,8 @@ toHaskellVM (Program (Ident name) params functions statements) = (name, toArray 
     where codeArray = functionInstructions ++ inputInstructions ++ statementInstructions ++ outputInstructions ++ [Stop]
           (inputInstructions, inputScope) = generateInputs params
           (functionInstructions, functionsScope) = generateFunctions functions
-          (statementInstructions, programEndScope) = generateScopeCode statements (globalScope, [localScope])
-          outputInstructions = generateOutputs programEndScope
+          statementInstructions = generateScopeCode statements (globalScope, [localScope])
+          outputInstructions = generateOutputs inputScope
           globalScope = functionsScope
           localScope = inputScope
 toHaskellVM _ = error "Input is not a Program"
@@ -88,15 +117,22 @@ generateFunctions [] = ([], (0, []))
 generateFunctions _ = error "TODO"
 
 -- HERE THE LOCAL ENVIROMENT GETS UPDATED
-generateScopeCode :: [IMLVal] -> Enviroment -> ([Instruction], Scope)
-generateScopeCode [] (_, localScope : _) = ([], localScope) 
-generateScopeCode _ _ = error "TODO"
+generateScopeCode :: [IMLVal] -> Enviroment -> [Instruction]
+generateScopeCode [] _ = [] 
+generateScopeCode (next : rest) enviroment = newInstructions ++ generateScopeCode rest newEnviroment
+    where (newInstructions, newEnviroment) = generateCode next enviroment 
 
 -- generateScopeCode p@(IdentDecleration ___ : rest) enviroment = instructions ++ (generateScopeCode rest (addLocalIdent enviroment "lala"))
 --    where instructions = generateCode p
 
-generateCode :: IMLVal -> Enviroment -> [Instruction]
-generateCode = error "not implemented"
+generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
+generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref ], env)
+generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], newEnviroment)
+    where (expressionInstructions, newEnviroment) = generateCode expression env
+generateCode (Assignment (Ident name) expression) env = ([loadAddress  $ getIdentAddress env name] ++ expressionInstructions ++ [store], newEnviroment)
+    where (expressionInstructions, newEnviroment) = generateCode expression env
+generateCode (IdentFactor ident Nothing) env = generateCode ident env
+generateCode s _ = error $ "not implemented" ++ show s
 
 program :: (Array Int Instruction)
 -- program = array (0, 4) [(0, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 5))), (1, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 4))), (2, Add Int32VmTy mempty), (3, Output (IntTy (32 :: Int)) "HALLO"), (4, Stop)]

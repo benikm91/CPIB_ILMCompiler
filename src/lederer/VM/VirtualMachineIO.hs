@@ -18,10 +18,10 @@ import Data.Array
 
 -- currently defined in Scanner
 readBool :: String -> Maybe Bool
-readBool = error "not yet implemented"
+readBool s = Just $ (read s :: Bool)
 
 readInteger :: String -> Maybe Integer
-readInteger = error "not yet implemented"
+readInteger s = Just $ (read s :: Integer)
 
 boolToInt :: Bool -> Int
 boolToInt False = 0
@@ -101,6 +101,8 @@ updateS stack (addr, val) = stack'
 
 return2 :: State -> IO (Check State)
 return2 = return . return
+
+
 
 execInstr :: Instruction -> State -> IO (Check State)
 execInstr Dup (pc, fp, val : stack) =
@@ -393,7 +395,7 @@ execInstr (CondJump jumpAddr) (pc, fp, IntVmVal x : stack)
   | intToBool x = return2 (pc + 1,   fp, stack) -- true
   | otherwise   = return2 (jumpAddr, fp, stack) -- false
 
-execInstr (Input BoolTy loc indicator) (pc, fp, IntVmVal addr : stack) =
+execInstr (Input BoolTy loc indicator) (pc, fp, stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show BoolTy ++ " = ");
      inputString <- getLine
      case readBool inputString of
@@ -401,9 +403,9 @@ execInstr (Input BoolTy loc indicator) (pc, fp, IntVmVal addr : stack) =
          return (Left (ErrorMsg ([loc], "input: not a boolean literal")))
        Just b ->
          let inputVmVal = (IntVmVal . boolToInt) b
-             stack' = updateS stack (addr, inputVmVal)
+             stack' = inputVmVal : stack
          in return2 (pc + 1, fp, stack')
-execInstr (Input (IntTy 32) loc indicator) (pc, fp, IntVmVal addr : stack) =
+execInstr (Input (IntTy 32) loc indicator) (pc, fp, stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show (IntTy 32) ++ " = ");
      inputString <- getLine
      case readInteger inputString of
@@ -414,7 +416,7 @@ execInstr (Input (IntTy 32) loc indicator) (pc, fp, IntVmVal addr : stack) =
            Left Overflow ->
              return (Left (ErrorMsg ([loc], "input: overflow of 32 bit")))
            Right result ->
-             let stack' = updateS stack (addr, Int32VmVal result)
+             let stack' = Int32VmVal result : stack
              in return2 (pc + 1, fp, stack')
 execInstr (Input (IntTy 64) loc indicator) (pc, fp, IntVmVal addr : stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show (IntTy 64) ++ " = ");

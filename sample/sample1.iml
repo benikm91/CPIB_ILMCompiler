@@ -1,4 +1,4 @@
-prog euklid(in m: int, in n: int, out o: int) {
+prog sample1(in m: int, in n: int, out o: int) {
   def func1(in m: int, out o: int) {}
   def func2(in n: int, out o: int) {}
 

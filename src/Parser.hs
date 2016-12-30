@@ -54,7 +54,7 @@ printTree :: IMLVal -> String
 printTree = printIml 0
 
 printIml :: Int -> IMLVal -> String
-printIml i t = (printTabs i) ++ (printElement t)
+printIml i t = printTabs i ++ printElement t
     where printElement (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
           printElement (Ident name) = "(Ident "++ name ++")"
           printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
@@ -103,7 +103,7 @@ parseProgram = do
 parseFunctionList, parseStatementList, parseParamList :: Parser [IMLVal]
 parseFunctionList  = many parseFunction
 parseStatementList = many parseStatement
-parseParamList = brackets (parseParam `sepBy` (string ","))
+parseParamList = brackets (parseParam `sepBy` string ",")
 
 -- Statement
 
@@ -130,7 +130,7 @@ parseFunctionCall = do
     spaces
     identName <- parseIdent
     spaces
-    params <- brackets (parseArgument `sepBy` (string ","))
+    params <- brackets (parseArgument `sepBy` string ",")
     spaces
     char ';'
     return $ FunctionCall identName params
@@ -272,24 +272,20 @@ parseIdent = do
 -- EXPR
 
 parseExpr :: Parser IMLVal
-parseExpr = do
-        try parseBoolExpr
+parseExpr = try parseBoolExpr
     <|> try parseTerm1
 
 parseTerm1 :: Parser IMLVal
-parseTerm1 = do 
-        try parseRelExpr
+parseTerm1 = try parseRelExpr
     <|> try parseTerm2
 
 parseTerm2 :: Parser IMLVal
-parseTerm2 = do 
-        try parseAddExpr
+parseTerm2 = try parseAddExpr
     <|> try parseTerm3
     
 
 parseTerm3 :: Parser IMLVal
-parseTerm3 = do 
-        try parseMulExpr
+parseTerm3 = try parseMulExpr
     <|> try parseFactor
 
 -- BOOLEXPR
@@ -305,8 +301,7 @@ parseBoolExpr = do
     return $ DyadicOpr opr firstTerm secondTerm
 
 parseBoolOpr :: Parser IMLOperation
-parseBoolOpr = do
-        try parseAnd
+parseBoolOpr = try parseAnd
     <|> try parseOr
 
 parseAnd, parseOr :: Parser IMLOperation
@@ -326,8 +321,7 @@ parseRelExpr = do
     return $ DyadicOpr opr firstTerm secondTerm
 
 parseRelOpr :: Parser IMLOperation
-parseRelOpr = do
-        try parseEq
+parseRelOpr = try parseEq
     <|> try parseNe
     <|> try parseLt
     <|> try parseGt
@@ -355,8 +349,7 @@ parseAddExpr = do
     return $ DyadicOpr opr firstTerm secondTerm
 
 parseAddOpr :: Parser IMLOperation
-parseAddOpr = do
-        try parseAnd
+parseAddOpr = try parseAnd
     <|> try parseOr
 
 parsePlus, parseMinus :: Parser IMLOperation
@@ -429,7 +422,7 @@ parseExprList  = do
     return $ ExprList exprList
 
 parseExprListInner :: Parser [IMLVal]
-parseExprListInner = parseExpr `sepBy` (string ",")
+parseExprListInner = parseExpr `sepBy` string ","
 
 parseOpr :: Parser IMLOperation
 parseOpr =

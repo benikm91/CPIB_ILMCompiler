@@ -138,10 +138,9 @@ parseFunctionCall = do
 parseArgument :: Parser IMLVal
 parseArgument = do 
     spaces
-    name <- parseIdent
+    name <- parseExpr
     return name
-    -- <|> parseLiteral TODO
-
+    
 parseIf :: Parser IMLVal
 parseIf = do
     spaces

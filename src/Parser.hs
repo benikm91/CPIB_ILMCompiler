@@ -44,66 +44,49 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             
 -- PRINT
 
-printTabs :: Int -> String
-printTabs 0 = ""
-printTabs i = "\t" ++ printTabs (i-1)
+printList :: Int -> [IMLVal] -> String
+printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (printIml (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"
 
-addTabs :: Int -> IMLVal -> String
-addTabs i val = printTabs i ++ printIml i val
+printTabs :: Int -> String
+printTabs i = concat ["\t" | r <- [0..i]]
 
 printTree :: IMLVal -> String
 printTree = printIml 0
 
 printIml :: Int -> IMLVal -> String
-printIml i (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
-printIml i (Ident name) = "(Ident "++ name ++")"
-printIml i t@(IdentDeclaration changemode val imltype) = show t
-printIml i (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printIml i ident ++ " " ++ show imlType
-printIml i t@(IdentFactor _ _) = show t
-printIml i t@(MonadicOpr iMLOperation iMLVal) = show t
-printIml i t@(Literal iMLLiteral) = show t
-printIml i t@Init = show t
-printIml i t@(ExprList iMLVals) = show t
-printIml i t@(Message string) = show t
-printIml i (Assignment name expression) = "Assignment" ++ printIml i name ++ " := " ++ printIml i expression
-printIml i (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList (i) params ++ "\n" ++ printList (i) states
-printIml i (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
-printIml i (If condition ifStates elseStates) = "If \n" ++ printTabs i ++ "(\n" ++ printTabs (i+1) ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
-printIml i (While condition states) = "While \n" ++ printTabs i ++ "(\n" ++ printTabs (i+1) ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
-printIml i (DyadicOpr op term1 term2) = "DyadicOpr " ++ show op ++ "\n" ++ printTabs i ++ "(\n" ++ printTabs (i+1) ++ printIml (i+1) term1 ++ ",\n" ++ printTabs (i+1) ++ printIml (i+1) term2 ++ "\n" ++ printTabs i ++ ")"
-
-printList :: Int -> [IMLVal] -> String
-printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (addTabs (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"
+printIml i t = (printTabs i) ++ (printElement t)
+    where printElement (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
+          printElement (Ident name) = "(Ident "++ name ++")"
+          printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
+          printElement (Assignment name expression) = "Assignment" ++ printIml i name ++ " := " ++ printIml i expression
+          printElement (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
+          printElement (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
+          printElement (If condition ifStates elseStates) = "If \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
+          printElement (While condition states) = "While \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
+          printElement (DyadicOpr op term1 term2) = "DyadicOpr " ++ show op ++ "\n" ++ printTabs i ++ "(\n" ++ printIml (i+1) term1 ++ ",\n" ++ printIml (i+1) term2 ++ "\n" ++ printTabs i ++ ")"
+          printElement t = show t
 
 -- END PRINT
 
-braces :: Parser a -> Parser a
-braces  = between (string "{") (string "}")
-brackets :: Parser a -> Parser a
-brackets  = between (string "(") (string ")")
+braces, brackets :: Parser a -> Parser a
+braces  = between (do string "{"; spaces) (do spaces; string "}")
+brackets  = between (do string "("; spaces) (do spaces; string ")")
 
 readExpr :: String -> IMLVal
 readExpr input = case parse parseProgram "Hambbe" input of
     Left err -> Message $ "fuck you: " ++ show err
     Right val -> val
 
-spaces :: Parser ()
+spaces, spaces1 :: Parser ()
 spaces = skipMany space
-
-spaces1 :: Parser ()
 spaces1 = skipMany1 space
 
-identStartChars :: String
+identStartChars, identChars :: String
 identStartChars = ['a'..'z']++['A'..'Z']++"_"
-
-identChars :: String
 identChars = identStartChars++['0'..'9']
 
 parseProgram :: Parser IMLVal
-parseProgram = parseProgram1
-
-parseProgram1 :: Parser IMLVal
-parseProgram1 = do
+parseProgram = do
     string "prog"
     spaces
     name <- parseIdent
@@ -113,20 +96,16 @@ parseProgram1 = do
     char '{'
     functions <- parseFunctionList
     statements <- parseStatementList
+    spaces
     char '}'
     return $ Program name params functions statements
 
-parseFunctionList :: Parser [IMLVal]
-parseFunctionList = do
-    functions <- many parseFunction
-    return functions
+parseFunctionList, parseStatementList, parseParamList :: Parser [IMLVal]
+parseFunctionList  = many parseFunction
+parseStatementList = many parseStatement
+parseParamList = brackets (parseParam `sepBy` (string ","))
 
-parseStatementList :: Parser [IMLVal]
-parseStatementList =  do
-    spaces
-    statements <- many parseStatement
-    spaces
-    return statements
+-- Statement
 
 parseStatement :: Parser IMLVal
 parseStatement = 
@@ -216,6 +195,16 @@ parseAssignment = do
     char ';'
     return $ Assignment identName expression
 
+parseIdentDeclaration :: Parser IMLVal
+parseIdentDeclaration = do 
+    spaces
+    changeMode <- parseChangeMode
+    (identName, identType) <- parseTypedIdent
+    spaces
+    char ';'
+    return $ IdentDeclaration changeMode identName identType
+
+-- Function
 
 parseFunction :: Parser IMLVal
 parseFunction = do
@@ -230,11 +219,6 @@ parseFunction = do
     spaces
     return $ FunctionDeclaration identName params statements
 
-parseParamList :: Parser [IMLVal]
-parseParamList = do
-    params <- brackets (parseParam `sepBy` (string ","))
-    return params
-
 parseParam :: Parser IMLVal
 parseParam = do
     spaces
@@ -245,34 +229,26 @@ parseParam = do
     (identName, identType) <- parseTypedIdent
     return $ ParamDeclaration flowMode changeMode identName identType
 
-parseIdentDeclaration :: Parser IMLVal
-parseIdentDeclaration = do 
-    spaces
-    changeMode <- parseChangeMode
-    (identName, identType) <- parseTypedIdent
-    spaces
-    char ';'
-    return $ IdentDeclaration changeMode identName identType
-
 parseFlowMode :: Parser IMLFlowMode
 parseFlowMode = option InOut $ 
         parseString "in" In
     <|> parseString "out" Out
     <|> parseString "InOut" InOut
 
+-- ChangeMode
+
 parseChangeMode :: Parser IMLChangeMode
-parseChangeMode = try parseVal
+parseChangeMode = 
+    try parseVal
     <|> parseVar
     <|> option Mutable parseConst
 
-parseVal :: Parser IMLChangeMode
+parseVal, parseVar, parseConst :: Parser IMLChangeMode
 parseVal = parseString "val" Const
-
-parseVar :: Parser IMLChangeMode
 parseVar = parseString "var" Mutable
-
-parseConst :: Parser IMLChangeMode
 parseConst = parseString "const" Const
+
+-- Identifier
 
 parseTypedIdent :: Parser (IMLVal, IMLType)
 parseTypedIdent = do
@@ -333,10 +309,8 @@ parseBoolOpr = do
         try parseAnd
     <|> try parseOr
 
-parseAnd :: Parser IMLOperation
+parseAnd, parseOr :: Parser IMLOperation
 parseAnd = parseString "&?" And
-
-parseOr :: Parser IMLOperation
 parseOr = parseString "|?" Or
 
 -- RELEXPR
@@ -360,22 +334,12 @@ parseRelOpr = do
     <|> try parseLe
     <|> try parseGe
 
-parseEq :: Parser IMLOperation
+parseEq, parseNe, parseLt, parseGt, parseLe, parseGe :: Parser IMLOperation
 parseEq = parseString "=" Eq
-
-parseNe :: Parser IMLOperation
 parseNe = parseString "/=" Ne
-
-parseLt :: Parser IMLOperation
 parseLt = parseString "<" Lt
-
-parseGt :: Parser IMLOperation
 parseGt = parseString ">" Gt
-
-parseLe :: Parser IMLOperation
 parseLe = parseString "<=" Le
-
-parseGe :: Parser IMLOperation
 parseGe = parseString ">=" Ge
 
 -- ADDEXPR
@@ -395,10 +359,8 @@ parseAddOpr = do
         try parseAnd
     <|> try parseOr
 
-parsePlus :: Parser IMLOperation
+parsePlus, parseMinus :: Parser IMLOperation
 parsePlus = parseString "+" Plus
-
-parseMinus :: Parser IMLOperation
 parseMinus = parseString "-" Minus
 
 -- MULEXPR
@@ -414,8 +376,7 @@ parseMulExpr = do
     return $ DyadicOpr opr firstTerm secondTerm
 
 parseMulOpr :: Parser IMLOperation
-parseMulOpr = do
-        try parseTimes
+parseMulOpr = try parseTimes
 
 parseTimes :: Parser IMLOperation
 parseTimes = parseString "*" Times
@@ -464,14 +425,11 @@ parseInit = parseString "init" Init
 
 parseExprList :: Parser IMLVal
 parseExprList  = do
-    spaces
     exprList <- (brackets $ option [] parseExprListInner)
     return $ ExprList exprList
 
 parseExprListInner :: Parser [IMLVal]
-parseExprListInner = do
-    expressions <- parseExpr `sepBy` (string ",")
-    return expressions
+parseExprListInner = parseExpr `sepBy` (string ",")
 
 parseOpr :: Parser IMLOperation
 parseOpr =

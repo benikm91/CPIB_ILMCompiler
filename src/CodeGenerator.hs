@@ -10,8 +10,32 @@ import Data.Array
 import Data.Monoid
 import CheckedArithmetic
 
+-- data Scope = Local | Global
+data Access = Direct | Indirect
+type Address = Int
+
+type Ident = (String, (Address, Access))
+
+type Scope = [Ident]
+
+-- stack of scopes
+type Enviroment = (Scope, [Scope]) -- Global and Locals
+
+addLocalIdent :: Enviroment -> Ident -> Enviroment
+-- TODO Check if Ident already exists => Throw error
+addLocalIdent = error "HALLO2" 
+
+getIdent :: Enviroment -> String -> Ident
+getIdent = error "HALLO"
+
 toHaskellVM :: IMLVal -> VMProgram
-toHaskellVM _ = ("HambbeToni", program)
+toHaskellVM (Program name params functions statements) = error "TODO" -- uses for statements generateCode
+
+-- generateInputs :: [IMLVal] -> [Instruction]
+-- generateFunctions :: [IMLVal] -> ([Instruction], Enviroment) -- uses generateCode 
+
+generateCode :: IMLVal -> Enviroment -> [Instruction]
+generateCode = error "not implemented"
 
 fromRight :: Either a b -> b
 fromRight (Right b) = b

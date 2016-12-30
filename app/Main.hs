@@ -4,4 +4,4 @@ import Compiler
 import VMSample
 
 main :: IO ()
-main = run
+main = readAndCompile

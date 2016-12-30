@@ -2,8 +2,10 @@ module Compiler
     ( readAndCompile
     ) where
 
+import CodeGenerator
 import Parser
 import Path
+import VirtualMachineIO
 
 readAndCompile :: IO ()
 readAndCompile = do
@@ -12,7 +14,7 @@ readAndCompile = do
     -- "E:/Users/Christian/Documents/FHNW/Semester5/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     -- "D:/OneDrive/Dokumente/FHNW-MightyTower/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     putStrLn $ "compiling " ++ program
-    putStrLn (printTree $ readExpr program)
+    putStrLn $ show (compile program)
     --putStrLn $ compile program
 
 --compile = do y
@@ -20,5 +22,7 @@ readAndCompile = do
   --let res = compile program
     --putStrLn res
 
-compile :: String -> String
-compile s = show (readExpr s)
+compile :: String -> VMProgram
+compile = toHaskellVM . readExpr
+
+-- exec :: VMProgram -> IO

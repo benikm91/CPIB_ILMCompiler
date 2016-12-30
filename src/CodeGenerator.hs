@@ -31,8 +31,8 @@ getIdent = error "HALLO"
 toHaskellVM :: IMLVal -> VMProgram
 toHaskellVM (Program name params functions statements) = error "TODO" -- uses for statements generateCode
 
--- generateInputs :: [IMLVal] -> [Instruction]
--- generateFunctions :: [IMLVal] -> ([Instruction], Enviroment) -- uses generateCode 
+-- generateInputs :: [IMLVal] -> ([Instruction], Scope)
+-- generateFunctions :: [IMLVal] -> ([Instruction], Scope) -- uses generateCode 
 
 generateCode :: IMLVal -> Enviroment -> [Instruction]
 generateCode = error "not implemented"

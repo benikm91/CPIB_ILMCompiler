@@ -3,7 +3,7 @@
 
 module VirtualMachineIO
   (VmType(..), VmValue(..), Instruction(..),
-   CodeAddress, StoreAddress, Code, VMProgram,
+   CodeAddress, StoreAddress, Code, VMProgram, CodeArray,
    boolToInt,
    execProgram, debugProgram)
 where

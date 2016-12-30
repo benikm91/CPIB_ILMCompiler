@@ -1,8 +1,18 @@
 prog sample1(in m: int, in n: int, out o: int) {
-  def func1(in m: int, out o: int) {}
-  def func2(in n: int, out o: int) {}
+  def func1(in m: int, out o: int) {
+    m := m * 5;
+    o := m;
+    o := o / 2;
+  }
+  def func2(in n: int, out o: int) {
 
-  var o1: int;
+  }
+
+  var o1:int(0 .. 10);
+  var array:int[0 .. 100];
+  var x:int;
+  x := array[0];
+
   if (o1) {
     var b: int;
     func1(m, o1);

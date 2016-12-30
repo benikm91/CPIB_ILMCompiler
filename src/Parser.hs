@@ -5,7 +5,7 @@ import Text.Parsec.Token hiding (braces, brackets)
 import System.Environment
 import Data.List
 
-data IMLType = Int
+data IMLType = Int | ClampInt Int Int | ArrayInt Int Int -- from to
             deriving Show
 
 data IMLFlowMode = In | Out | InOut
@@ -14,7 +14,7 @@ data IMLFlowMode = In | Out | InOut
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLOperation = Times
+data IMLOperation = Times | Div
             | Plus | Minus
             | Lt | Ge | Eq | Ne | Gt | Le
             | And | Or | Not
@@ -28,6 +28,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | IdentDeclaration IMLChangeMode IMLVal IMLType
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | IdentFactor IMLVal (Maybe IMLVal)
+            | IdentArray IMLVal Int -- name index
             | DyadicOpr IMLOperation IMLVal IMLVal
             | MonadicOpr IMLOperation IMLVal
             | Literal IMLLiteral
@@ -260,7 +261,35 @@ parseTypedIdent = do
     return (identName, identType)
 
 parseType :: Parser IMLType
-parseType = parseString "int" Int
+parseType = try praseIntClamp <|> try praseIntArray <|> parseString "int" Int
+
+praseIntClamp :: Parser IMLType
+praseIntClamp = do 
+        spaces
+        string "int"
+        spaces
+        string "("
+        a <- many1 digit
+        spaces
+        string ".."
+        spaces
+        b <- many1 digit
+        string ")"
+        return $ ClampInt (read a :: Int) (read b :: Int)
+
+praseIntArray :: Parser IMLType
+praseIntArray = do 
+        spaces
+        string "int"
+        spaces
+        string "["
+        a <- many1 digit
+        spaces
+        string ".."
+        spaces
+        b <- many1 digit
+        string "]"
+        return $ ArrayInt (read a :: Int) (read b :: Int)
 
 parseIdent :: Parser IMLVal
 parseIdent = do
@@ -281,7 +310,6 @@ parseTerm1 = try parseRelExpr
 parseTerm2 :: Parser IMLVal
 parseTerm2 = try parseAddExpr
     <|> try parseTerm3
-    
 
 parseTerm3 :: Parser IMLVal
 parseTerm3 = try parseMulExpr
@@ -348,8 +376,8 @@ parseAddExpr = do
     return $ DyadicOpr opr firstTerm secondTerm
 
 parseAddOpr :: Parser IMLOperation
-parseAddOpr = try parseAnd
-    <|> try parseOr
+parseAddOpr = try parsePlus
+    <|> try parseMinus
 
 parsePlus, parseMinus :: Parser IMLOperation
 parsePlus = parseString "+" Plus
@@ -371,7 +399,7 @@ parseMulOpr :: Parser IMLOperation
 parseMulOpr = try parseTimes
 
 parseTimes :: Parser IMLOperation
-parseTimes = parseString "*" Times
+parseTimes = parseString "*" Times <|> parseString "/" Div
 
 -- FACTOR
 
@@ -380,6 +408,7 @@ parseFactor =
         try parseTrue
     <|> try parseFalse
     <|> try parseNumber
+    <|> try parseArrayIdentFactor
     <|> try parseIdentFactor
     <|> try parseMonadicOpr
     <|> try (brackets parseExpr)
@@ -399,6 +428,18 @@ parseIdentFactor = do
     spaces
     identAddition <- try $ optionMaybe (choice [ parseInit, parseExprList ])
     return $ IdentFactor ident identAddition
+
+parseArrayIdentFactor :: Parser IMLVal
+parseArrayIdentFactor = do
+    spaces
+    ident <- try parseIdent
+    spaces
+    string "["
+    spaces
+    i <- many1 digit
+    spaces
+    string "]"
+    return $ IdentArray ident (read i :: Int)
 
 -- TODO Perhaps parseTrue, parseFalse, parseNumber as where functions :) not sure
 parseTrue :: Parser IMLVal

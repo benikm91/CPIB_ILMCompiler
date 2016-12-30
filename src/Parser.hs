@@ -1,4 +1,4 @@
-module Parser ( readExpr, printTree, IMLVal, IMLType, IMLFlowMode, IMLChangeMode ) where
+module Parser ( readExpr, printTree, IMLVal(..), IMLType, IMLFlowMode(..), IMLChangeMode, IMLOperation, IMLLiteral ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.Parsec.Token hiding (braces, brackets)
@@ -101,8 +101,8 @@ parseProgram = do
     return $ Program name params functions statements
 
 parseFunctionList, parseStatementList, parseParamList :: Parser [IMLVal]
-parseFunctionList  = many parseFunction
-parseStatementList = many parseStatement
+parseFunctionList  = many $ try parseFunction
+parseStatementList = many $ try parseStatement
 parseParamList = brackets (parseParam `sepBy` string ",")
 
 -- Statement
@@ -229,10 +229,10 @@ parseParam = do
     return $ ParamDeclaration flowMode changeMode identName identType
 
 parseFlowMode :: Parser IMLFlowMode
-parseFlowMode = option InOut $ 
-        parseString "in" In
-    <|> parseString "out" Out
-    <|> parseString "InOut" InOut
+parseFlowMode = 
+        try (parseString "inOut" InOut)
+    <|> try (parseString "in"    In)
+    <|> try (parseString "out"   Out)
 
 -- ChangeMode
 

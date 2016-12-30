@@ -14,7 +14,10 @@ readAndCompile = do
     -- "E:/Users/Christian/Documents/FHNW/Semester5/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     -- "D:/OneDrive/Dokumente/FHNW-MightyTower/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     putStrLn $ "compiling " ++ program
+    putStrLn $ printTree (readExpr program)
     putStrLn $ show (compile program)
+    t <- (execProgram . compile) program
+    print t
     --putStrLn $ compile program
 
 --compile = do y
@@ -24,5 +27,3 @@ readAndCompile = do
 
 compile :: String -> VMProgram
 compile = toHaskellVM . readExpr
-
--- exec :: VMProgram -> IO

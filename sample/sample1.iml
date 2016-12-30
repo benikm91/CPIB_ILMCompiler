@@ -14,6 +14,7 @@ prog euklid(in m: int, in n: int, out o: int) {
   }
   var a: int;
   var b: int;
+  o1 := b;
   while (a init > b init) {
     func1(m, o1);
     func3(m, o1);

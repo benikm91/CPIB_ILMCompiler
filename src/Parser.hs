@@ -79,8 +79,18 @@ readExpr input = case parse parseProgram "Hambbe" input of
     Right val -> val
 
 spaces, spaces1 :: Parser ()
-spaces = skipMany space
+spaces = try skipComment <|> skipMany space
 spaces1 = skipMany1 space
+--whiteSpaces = try skipComment <|> skipMany space
+
+skipComment :: Parser ()
+skipComment = do
+    skipMany space
+    string "//"
+    many $ noneOf "\n"
+    newline
+    spaces
+    return ()
 
 identStartChars, identChars :: String
 identStartChars = ['a'..'z']++['A'..'Z']++"_"
@@ -351,10 +361,10 @@ parseRelExpr = do
 parseRelOpr :: Parser IMLOperation
 parseRelOpr = try parseEq
     <|> try parseNe
-    <|> try parseLt
-    <|> try parseGt
     <|> try parseLe
     <|> try parseGe
+    <|> try parseLt
+    <|> try parseGt
 
 parseEq, parseNe, parseLt, parseGt, parseLe, parseGe :: Parser IMLOperation
 parseEq = parseString "=" Eq

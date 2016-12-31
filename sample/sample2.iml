@@ -1,3 +1,3 @@
-prog negate (inOut n: int, out o: int) {
-    o := -n;
+prog negate (in m:int, inOut n: int, out o: int) {
+    o := m + n;
 }

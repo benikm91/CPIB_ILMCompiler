@@ -24,6 +24,18 @@ fromRight _ = error "Not left"
 neg :: Instruction
 neg = Neg Int32VmTy mempty
 
+add32, sub32, mult32, divFloor32, eq32, ne32, gt32, ge32, lt32, le32 :: Instruction
+add32 = Add Int32VmTy mempty
+sub32 = Sub Int32VmTy mempty
+mult32 = Mult Int32VmTy mempty
+divFloor32 = DivFloor Int32VmTy mempty
+eq32 = VirtualMachineIO.Eq Int32VmTy
+ne32 = VirtualMachineIO.Ne Int32VmTy
+gt32 = VirtualMachineIO.Gt Int32VmTy
+ge32 = VirtualMachineIO.Ge Int32VmTy
+lt32 = VirtualMachineIO.Lt Int32VmTy
+le32 = VirtualMachineIO.Le Int32VmTy
+
 loadAddress :: Int -> Instruction
 loadAddress addr = LoadIm IntVmTy (IntVmVal addr)
 
@@ -132,7 +144,25 @@ generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions 
 generateCode (Assignment (Ident name) expression) env = ([loadAddress  $ getIdentAddress env name] ++ expressionInstructions ++ [store], newEnviroment)
     where (expressionInstructions, newEnviroment) = generateCode expression env
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
+generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], newEnviroment)
+    where (expressionInstructions, newEnviroment) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 generateCode s _ = error $ "not implemented" ++ show s
+
+
+getDyadicOpr :: IMLOperation -> Instruction
+getDyadicOpr Parser.Plus = add32
+getDyadicOpr Parser.Minus = sub32
+getDyadicOpr Parser.Times = mult32
+getDyadicOpr Parser.Div = divFloor32
+getDyadicOpr Parser.Lt = lt32
+getDyadicOpr Parser.Ge = ge32
+getDyadicOpr Parser.Eq = eq32
+getDyadicOpr Parser.Ne = ne32
+getDyadicOpr Parser.Gt = gt32
+getDyadicOpr Parser.Le = le32
+getDyadicOpr Parser.And = error "TODO"
+getDyadicOpr Parser.Or = error "TODO"
+getDyadicOpr Parser.Not = error "TODO"
 
 program :: (Array Int Instruction)
 -- program = array (0, 4) [(0, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 5))), (1, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 4))), (2, Add Int32VmTy mempty), (3, Output (IntTy (32 :: Int)) "HALLO"), (4, Stop)]

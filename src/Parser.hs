@@ -1,4 +1,4 @@
-module Parser ( readExpr, printTree, IMLVal(..), IMLType, IMLFlowMode(..), IMLChangeMode, IMLOperation(..), IMLLiteral ) where
+module Parser ( readExpr, printTree, IMLVal(..), IMLType(..), IMLFlowMode(..), IMLChangeMode(..), IMLOperation(..), IMLLiteral(..) ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.Parsec.Token hiding (braces, brackets)

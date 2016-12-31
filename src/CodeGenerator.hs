@@ -21,6 +21,9 @@ fromRight :: Either a b -> b
 fromRight (Right b) = b
 fromRight _ = error "Not left"
 
+
+-- Instructions
+
 neg :: Instruction
 neg = Neg Int32VmTy mempty
 
@@ -54,6 +57,14 @@ deref = Deref
 store :: Instruction
 store = Store
 
+condJump :: CodeAddress -> Instruction
+condJump = CondJump
+
+uncondJumpp :: CodeAddress -> Instruction
+uncondJumpp = UncondJump
+
+-- End Instruction
+
 -- data Scope = Local | Global
 -- data Access = Direct | Indirect
 type Address = Int
@@ -71,11 +82,29 @@ type Enviroment = (Scope, [Scope]) -- Global and Locals
 
 addLocalIdent :: Enviroment -> Ident -> Enviroment
 -- TODO Check if Ident already exists => Throw error
-addLocalIdent = error "HALLO2" 
+addLocalIdent (gEnv, lEnvs) ident = (gEnv, addToLocalScope lEnvs ident)
+
+addToLocalScope :: [Scope] -> Ident -> [Scope]
+addToLocalScope scopes ident = others ++ [(address+1, idents ++ [ident])]
+    where others = init scopes
+          myScope = last scopes
+          address = fst myScope
+          idents = snd myScope
+
 
 findInScope :: Scope -> String -> Maybe Ident
 findInScope (_, []) _ = Nothing
 findInScope (sp, next : rest) name = if (fst3 next) == name then Just next else findInScope (sp, rest) name 
+
+getSpPos :: Enviroment -> Int
+getSpPos env = fst (last (snd env))
+
+updateSp :: Enviroment -> Int -> Enviroment
+updateSp (gScope, lScopes) i = (gScope, others ++ [(address+i, idents)])
+    where others = init lScopes
+          myScope = last lScopes
+          address = fst myScope
+          idents = snd myScope
 
 getIdent :: Enviroment -> String -> Ident
 getIdent (global, []) name = case findInScope global name of 
@@ -138,16 +167,20 @@ generateScopeCode (next : rest) enviroment = newInstructions ++ generateScopeCod
 --    where instructions = generateCode p
 
 generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
-generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref ], env)
-generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], newEnviroment)
+generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref ], updateSp env 2)
+generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updateSp env 1)
+generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateSp newEnviroment 1)
     where (expressionInstructions, newEnviroment) = generateCode expression env
-generateCode (Assignment (Ident name) expression) env = ([loadAddress  $ getIdentAddress env name] ++ expressionInstructions ++ [store], newEnviroment)
+generateCode (Assignment (Ident name) expression) env = ([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateSp newEnviroment 2)
     where (expressionInstructions, newEnviroment) = generateCode expression env
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
-generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], newEnviroment)
+generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateSp newEnviroment 1)
     where (expressionInstructions, newEnviroment) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
+generateCode (If condition ifStatement elseStatement) env = (conditionInstructions ++ [condJump (getSpPos ifEnv + 1)] ++ ifStatementInstructions ++ [uncondJumpp (getSpPos elseEnv)] ++ elseStatementInstructions, updateSp ifEnv 1)
+    where (conditionInstructions, condEnv) = generateCode condition env
+          (ifStatementInstructions, ifEnv) = generateCode (head ifStatement) (updateSp condEnv 1) --TODO use the hole elseStament
+          (elseStatementInstructions, elseEnv) = generateCode (head elseStatement) (updateSp ifEnv 1) --TODO use the hole elseStament
 generateCode s _ = error $ "not implemented" ++ show s
-
 
 getDyadicOpr :: IMLOperation -> Instruction
 getDyadicOpr Parser.Plus = add32

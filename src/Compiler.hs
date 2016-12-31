@@ -16,7 +16,7 @@ readAndCompile = do
     putStrLn $ "compiling " ++ program
     putStrLn $ printTree (readExpr program)
     putStrLn $ show (compile program)
-    t <- (debugProgram . compile) program
+    t <- (execProgram . compile) program
     print t
     --putStrLn $ compile program
 

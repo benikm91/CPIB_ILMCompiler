@@ -380,6 +380,10 @@ parseAddOpr :: Parser IMLOperation
 parseAddOpr = try parsePlus
     <|> try parseMinus
 
+parsePlus, parseMinus :: Parser IMLOperation
+parsePlus = parseString "+" Plus
+parseMinus = parseString "-" Minus
+
 -- MULEXPR
 
 parseMulExpr :: Parser IMLVal

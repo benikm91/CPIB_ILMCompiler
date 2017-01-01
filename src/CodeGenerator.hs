@@ -219,6 +219,9 @@ generateCode (If condition ifStatements elseStatements) env@(_, _, global, local
           (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements (updateCodeAddress ifEndEnv 1) --TODO use the hole elseStament
 -- generateCode (FunctionCall name params) env = (prepParams ++ [ call $ getIdentAddress env name ], updateCodeAddress prepParamsEndEnv 1)
 --    where (prepParams, prepParamsEndEnv) = generateMultiCode params env
+generateCode (While condition statements) env@(_, _, global, locals) =  (conditionInstructions ++ [condJump (getPc statemEndEnv + 1)] ++ statmentInstructions ++ [uncondJump (getPc env)], statemEndEnv)
+    where (conditionInstructions, condEndEnv) = generateCode condition env
+          (statmentInstructions, statemEndEnv) = generateScopeCode statements (updateCodeAddress condEndEnv 1)
 generateCode s _ = error $ "not implemented" ++ show s
 
 generateAssinmentCode :: String -> IdentInfo -> ([Instruction], Enviroment) -> ([Instruction], Enviroment)

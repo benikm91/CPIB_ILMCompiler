@@ -1,10 +1,3 @@
-prog negate (in m:int, inOut n: int, out o: int) {
-    if(m < n) {
-        o:= 1;
-        o:= 2;
-    }
-    else {
-        o := 0;
-        o := 0;
-    }
+prog negate (in m:int, inOut n: int, out o: int(0..10)) {
+    o := m + n;
 }

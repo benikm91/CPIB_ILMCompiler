@@ -1,0 +1,12 @@
+//Lade variabel, speichere resultat von expression
+LoadAddress <ident>, <expressionIstructions>, 
+//verdopple resultat check ob grösser max
+Dup, LoadIm <max>, Le, CondJump <1>
+//verdopple resultat check ob kleiner max
+Dup, LoadIm <min>, gt, CondJump <2>, 
+//Wert ist im bereich wird gespeichert
+Store, Jump <3>,
+//verwerfe resultat von vergleich und expression resultat. Speichere max
+1:: Store, LoadAddress <ident>, LoadIm <max>,Store, Jump <3>
+//verwerfe resultat von vergleich und expression resultat. Speichere min
+2:: Store, LoadAddress <ident>, LoadIm <min>, Store

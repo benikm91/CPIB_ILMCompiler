@@ -62,8 +62,8 @@ store = Store
 condJump :: CodeAddress -> Instruction
 condJump = CondJump
 
-uncondJumpp :: CodeAddress -> Instruction
-uncondJumpp = UncondJump
+uncondJump :: CodeAddress -> Instruction
+uncondJump = UncondJump
 
 -- End Instruction
 
@@ -72,7 +72,7 @@ uncondJumpp = UncondJump
 type Address = Int
 
 data IdentInfo = Param IMLFlowMode IMLChangeMode
-               | Var IMLChangeMode
+               | Var IMLType IMLChangeMode
                | Function
 
 type Ident = (String, Address, IdentInfo)
@@ -185,16 +185,40 @@ generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref
 generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updateCodeAddress env 1)
 generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateCodeAddress newEnviroment 1)
     where (expressionInstructions, newEnviroment) = generateCode expression env
-generateCode (Assignment (Ident name) expression) env = ([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateCodeAddress newEnviroment 2)
-    where (expressionInstructions, newEnviroment) = generateCode expression env
+generateCode (Assignment (Ident name) expression) env = generateAssinmentCode name (thd3 $ getIdent env name) (generateCode expression env) --([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateCodeAddress newEnviroment 2)
+    --where (expressionInstructions, newEnviroment) = generateCode expression env
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
 generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateCodeAddress newEnviroment 1)
     where (expressionInstructions, newEnviroment) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
-generateCode (If condition ifStatement elseStatement) env@(_, global, locals) = (conditionInstructions ++ [condJump (getCodeAddress ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJumpp (getCodeAddress elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
+generateCode (If condition ifStatement elseStatement) env@(_, global, locals) = (conditionInstructions ++ [condJump (getCodeAddress ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJump (getCodeAddress elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
     where (conditionInstructions, condEndEnv) = generateCode condition env
           (ifStatementInstructions, ifEndEnv) = generateScopeCode (updateCodeAddress condEndEnv 1) [] ifStatement --TODO use the hole elseStament
           (elseStatementInstructions, elseEndEnv) = generateScopeCode (updateCodeAddress ifEndEnv 1) [] elseStatement --TODO use the hole elseStament
 generateCode s _ = error $ "not implemented" ++ show s
+
+generateAssinmentCode :: String -> IdentInfo -> ([Instruction], Enviroment) -> ([Instruction], Enviroment)
+generateAssinmentCode name (CodeGenerator.Var var@(ClampInt _ _) _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updateCodeAddress clampEnv 1)
+    where loadInst = loadAddress $ getIdentAddress exprEnv name
+          (clampInst, clampEnv) = generateClampAssinmentCode loadInst var exprEnv
+generateAssinmentCode name (CodeGenerator.Var var@(ArrayInt _ _) _) (exprInst, exprEnv) = error "TODO"
+generateAssinmentCode name _ (exprInst, exprEnv)= ([loadAddress $ getIdentAddress exprEnv name] ++ exprInst ++ [store], updateCodeAddress exprEnv 2)
+
+-- preconditon address is already loaded in the stack
+generateClampAssinmentCode :: Instruction -> IMLType -> Enviroment -> ([Instruction], Enviroment)
+generateClampAssinmentCode loadAddInst (ClampInt cmin cmax) env = (checkMaxInst ++ checkMinInst ++ storeInRangeInst ++ storeOverMax ++ storeUnderMin, updateCodeAddress env (afterAssinmentPc - 1))
+    where startPc = getCodeAddress env
+          checkMaxLength = 4
+          checkMinLength = 4
+          storeInRangeLength = 2
+          storeOverMaxLenght = 5
+          storeUnderMinLenght = 4
+          afterAssinmentPc = startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + 1
+          checkMaxInst = [Dup, loadIm32 $ toInteger cmax, le32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength)]
+          checkMinInst = [Dup, loadIm32 $ toInteger cmin, gt32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght)]
+          storeInRangeInst = [Store, uncondJump afterAssinmentPc]
+          storeOverMax = [Store, loadAddInst, loadIm32 $ toInteger cmax, store, uncondJump afterAssinmentPc]
+          storeUnderMin = [Store, loadAddInst, loadIm32 $ toInteger cmin, store]
+generateClampAssinmentCode _ _ _ = error "Type is not a ClampInt"
 
 -- generateCodeWithNewScope :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
 -- generateCodeWithNewScope vals env = generateStatmensCode vals (addNewLocalScope env) []

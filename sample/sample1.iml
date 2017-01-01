@@ -1,20 +1,43 @@
 prog sample1(in m: int, in n: int, out o: int) {
-  def func1(in m: int, out o: int) {}
-  def func2(in n: int, out o: int) {}
+  def func1(in m: int, out o: int) {
+    m := m * 5;
+    o := m;
+    o := o / 2;
+  }
+  def func2(in n: int, out o: int) {
 
-  var o1: int;
-  if (o1) {
+  }
+
+  //asölkdaksöldasjölkd
+  var o1:int(0 .. 10);
+  var array:int[0 .. 100];
+  var x:int;
+  x := array[0];
+
+  //hello
+  c := a = b;
+  c := a < b;
+  c := a > b;
+  c := a <= b;
+  c := a >= b;
+  c := a /= b;
+  c := a >= b;
+
+  //asdsdad
+  if (x = 5) {
     var b: int;
     func1(m, o1);
   } else {
     func2(m, o1);
   }
-  if (true = (false &? false)) {
+  if (true = (a < 2 &? b /= 3)) {
     var hambbe: int;
   }
+  //asdasd
   var a: int;
   var b: int;
   o1 := b;
+  //asdasdasdas
   while (a init > b init) {
     func1(m, o1);
     func3(m, o1);

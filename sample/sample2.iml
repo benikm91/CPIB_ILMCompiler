@@ -1,8 +1,8 @@
-prog negate (inOut n: int, out o: int) {
-    o := -n;
-    var p: int(0 .. 100)
-    p := 100;
-    p := p - 1;
+prog negate (in m:int, inOut n: int, out o: int) {
+    if(m < n) {
+        o:= 1;
+    }
+    else{
+        o := 0;
+    }
 }
-
-def sigmoid(a) : float(-1, 1)

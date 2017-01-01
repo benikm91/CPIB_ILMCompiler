@@ -148,37 +148,35 @@ generateInputs instructions startEnv = foldl connectInput ([], addLocalScope [] 
 
 -- TODO better name
 connectInput :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
-connectInput (instructions, (pc, sp, global, local : rest)) statement = (instructions ++ newInstructions, (pc + length newInstructions, sp + 1, global, (newIdent : local) : rest))
-    where (newInstructions, newIdent) = generateInput statement sp
+connectInput (instructions, env) statement = (instructions ++ newInstructions, newEnv)
+    where (newInstructions, newEnv) = generateInput statement env
 
-generateInput :: IMLVal -> Address -> ([Instruction], Ident)
-generateInput p@(ParamDeclaration flowMode changeMode (Ident name) _) sp = (inputCode, (name, sp, Param flowMode changeMode))
-    where inputCode = generateInputCode p
+generateInput :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
+generateInput p@(ParamDeclaration flowMode changeMode (Ident name) _) env@(pc, sp, global, locals) = (newInstructions, newEnv)
+    where newInstructions = generateInputCode p
+          newIdent = (name, sp, Param flowMode changeMode)
+          newEnv = (pc + length newInstructions, sp + 1, global, addToLocalScope locals newIdent)
 
 generateInputCode :: IMLVal -> [Instruction]
 generateInputCode (ParamDeclaration Out  _ (Ident name) _) = [ loadIm32 0 ]
 generateInputCode (ParamDeclaration _    _ (Ident name) _) = [ input32 name ]
 
-generateFunctions :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateFunctions :: [IMLVal] -> Enviroment ->  ([Instruction], Enviroment)
 generateFunctions [] env = ([], env)
-
-{-
-
-generateFunctions :: Enviroment -> [IMLVal] -> ([Instruction], Scope, Enviroment)
-generateFunctions startEnv = (instructions, functionScope)
-    where (instructions, (_, functionScope, _)) = foldl connectFunction ([], startEnv)
+{-generateFunctions statements startEnv = (instructions, newEnv)
+    where (instructions, newEnv) = foldl connectFunction ([], startEnv) statements
 
 connectFunction :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
-connectFunction (instructions, env@(pc, (sp, global), [])) val@(FunctionDeclaration name _ _) = (instructions ++ newInstructions, (pc + length newInstructions, (sp + 1, newIdent : global, [])))
-    where (newInstructions, parameters) = generateFunctionCode env val
-          newIdent = (name, pc, Function parameters)
+connectFunction (instructions, env) statement = (instructions ++ newInstructions, newEnv))
+    where (newInstructions, newEnv) = generateFunction statement env 
 
-generateFunctionCode :: Enviroment -> IMLVal -> ([Instruction], [IdentInfo])
-generateFunctionCode (pc, (sp, global), []) (FunctionDeclaration name params statements) = (paramInstructions ++ functionInstructions ++ returnInstruction, parameters)
-    where (paramInstructions, parameters) = generateFunctionInputs (reverse params) sp
-          newEnv = (pc + length paramInstructions, (sp + length parameters, global), [])
-          (functionInstructions, _) = generateMultiCode (addLocalScope newEnv functionScope) statements
-          returnInstruction = Return 0
+generateFunction :: IMLVal -> Enviroment -> ([Instruction], [IdentInfo])
+generateFunction (FunctionDeclaration name params statements) env@(pc, sp, global, locals) = (instructions, parameters)
+    where (paramInstructions, inputEndEnv) = generateFunctionInputs (reverse params) sp
+          (statementInstructions, functionEndEnv) = generateMultiCode inputEndEnv statements
+          (returnInstruction, returnEndEnv) = (Return 0, updateCodeAddress functionEndEnv 1)
+          instructions = paramInstructions ++ statementInstructions ++ returnInstruction
+          newEnv = returnEndEnd -- (pc + length instructions, sp + length parameters, global, locals)
           
 generateFunctionInputs :: [IMLVal] -> Address -> ([Instruction], [IdentInfo])
 generateFunctionInputs instructions sp = foldl connectFunctionInput ([], (sp, []), []) instructions

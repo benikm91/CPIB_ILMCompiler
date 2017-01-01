@@ -56,6 +56,9 @@ output32 name = Output (IntTy 32) name
 deref :: Instruction
 deref = Deref
 
+call :: CodeAddress -> Instruction
+call = Call
+
 store :: Instruction
 store = Store
 
@@ -72,56 +75,53 @@ uncondJump = UncondJump
 type Address = Int
 
 data IdentInfo = Param IMLFlowMode IMLChangeMode
+<<<<<<< HEAD
                | Var IMLType IMLChangeMode
                | Function
+=======
+               | Var IMLChangeMode
+               | Function [IdentInfo]
+>>>>>>> 9a4f418c859e42ead2cd59989f300a6a5efeb63d
 
 type Ident = (String, Address, IdentInfo)
 
-type Scope = (Address, [Ident])
+type Scope = [Ident]
 
 -- stack of scopes
-type Enviroment = (CodeAddress, Scope, [Scope]) -- PC, Global, Locals
+type Enviroment = (CodeAddress, Address, Scope, [Scope]) -- PC, Global, Locals
+
+updateCodeAddress :: Enviroment -> Int -> Enviroment
+updateCodeAddress (pc, sp, global, locals) i = (pc + i, sp, global, locals)
 
 addLocalIdent :: Enviroment -> Ident -> Enviroment
 -- TODO Check if Ident already exists => Throw error
-addLocalIdent (addr, gEnv, lEnvs) ident = (addr, gEnv, addToLocalScope lEnvs ident)
+addLocalIdent (pc, sp, global, locals) ident = (pc, sp + 1, global, addToLocalScope locals ident)
 
 addToLocalScope :: [Scope] -> Ident -> [Scope]
-addToLocalScope scopes ident = others ++ [(address+1, idents ++ [ident])]
-    where others = init scopes
-          myScope = last scopes
-          address = fst myScope
-          idents = snd myScope
+addToLocalScope (next : rest) ident = (ident : next) : rest 
 
-addNewLocalScope :: Enviroment -> Scope -> Enviroment
-addNewLocalScope (addr, gScope, lScopes) scope = (addr, gScope, lScopes ++ [scope])
+addLocalScope :: Scope -> Enviroment -> Enviroment 
+addLocalScope scope (pc, sp, global, locals) = (pc, sp, global, scope : locals)  
 
-removeLocalScope :: Enviroment -> Scope -> Enviroment
-removeLocalScope (addr, gScope, lScopes) scope  = (addr, gScope, init lScopes)
+removeLocalScope :: Enviroment -> Enviroment
+removeLocalScope (pc, sp, global, locals)  = (pc, sp, global, init locals)
+
+getPc :: Enviroment -> Int
+getPc (pc, _, _, _) = pc
+
+getLocalScopes :: Enviroment -> [Scope]
+getLocalScopes (_, _, _, locals) = locals 
 
 findInScope :: Scope -> String -> Maybe Ident
-findInScope (_, []) _ = Nothing
-findInScope (sp, next : rest) name = if (fst3 next) == name then Just next else findInScope (sp, rest) name 
-
-getCodeAddress :: Enviroment -> Int
-getCodeAddress (address, _, _) = address
-
-updateCodeAddress :: Enviroment -> Int -> Enviroment
-updateCodeAddress (addr, gs, ls) i = (addr + i, gs, ls)
-
--- updateSp :: Enviroment -> Int -> Enviroment
--- updateSp (gScope, lScopes) i = (gScope, others ++ [(address+i, idents)])
---     where others = init lScopes
---           myScope = last lScopes
---           address = fst myScope
---           idents = snd myScope
+findInScope [] _ = Nothing
+findInScope (next : rest) name = if (fst3 next) == name then Just next else findInScope rest name 
 
 getIdent :: Enviroment -> String -> Ident
-getIdent (_, global, []) name = case findInScope global name of 
+getIdent (_, _, global, []) name = case findInScope global name of 
     Nothing -> error $ "Identifier " ++ name ++ " not found!"
     Just a -> a
-getIdent (ca, global, next : rest) name = case findInScope next name of
-    Nothing -> getIdent (ca, global, rest) name
+getIdent (pc, sp, global, next : rest) name = case findInScope next name of
+    Nothing -> getIdent (pc, sp, global, rest) name
     Just a -> a
 
 getIdentAddress :: Enviroment -> String -> Address
@@ -130,31 +130,31 @@ getIdentAddress a b = (snd3 (getIdent a b))
 toArray :: [a] -> Array Int a
 toArray l = array (0, length l - 1)  (zip [0 .. length l - 1] l)
 
+emptyEnviroment :: Enviroment
+emptyEnviroment = (0, 0, [], [])
+
 toHaskellVM :: IMLVal -> VMProgram
 toHaskellVM (Program (Ident name) params functions statements) = (name, toArray codeArray)
     where codeArray = functionInstructions ++ inputInstructions ++ statementInstructions ++ outputInstructions ++ [Stop]
-          (inputInstructions, inputScope) = generateInputs params
-          (functionInstructions, functionsScope) = generateFunctions functions
-          pc = length functionInstructions + length inputInstructions
-          (statementInstructions, _) = generateScopeCode (pc, globalScope, [localScope]) [] statements
-          outputInstructions = generateOutputs inputScope
-          globalScope = functionsScope
-          localScope = inputScope
+          (functionInstructions, functionEndEnv) = generateFunctions functions emptyEnviroment  
+          (inputInstructions, inputEndEnv) = generateInputs params functionEndEnv 
+          (statementInstructions, _) = generateScopeCode statements inputEndEnv 
+          outputInstructions = generateOutputs ((head . getLocalScopes) inputEndEnv)
 toHaskellVM _ = error "Input is not a Program"
 
 generateOutputs :: Scope -> [Instruction]
-generateOutputs (sp, []) = []
-generateOutputs (sp, (name, _, Param Out _) : scope) = output32 name : generateOutputs (sp - 1, scope)
-generateOutputs (sp, (name, _, Param InOut _) : scope) = output32 name : generateOutputs (sp - 1, scope)
-generateOutputs (sp, _ : scope) = generateOutputs (sp - 1, scope)
+generateOutputs [] = []
+generateOutputs ((name, _, Param Out _) : rest) = output32 name : generateOutputs rest
+generateOutputs ((name, _, Param InOut _) : rest) = output32 name : generateOutputs rest
+generateOutputs (_ : rest) = generateOutputs rest
 
-generateInputs :: [IMLVal] -> ([Instruction], Scope)
-generateInputs = foldl connectInputs ([], (0, []))
+generateInputs :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateInputs instructions startEnv = foldl connectInput ([], addLocalScope [] startEnv) instructions
 
 -- TODO better name
-connectInputs :: ([Instruction], Scope) -> IMLVal -> ([Instruction], Scope)
-connectInputs (instructions, (sp, scope)) val = (instructions ++ newInstructions, (sp + 1, newIdent : scope))
-    where (newInstructions, newIdent) = generateInput val sp
+connectInput :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
+connectInput (instructions, (pc, sp, global, local : rest)) statement = (instructions ++ newInstructions, (pc + length newInstructions, sp + 1, global, (newIdent : local) : rest))
+    where (newInstructions, newIdent) = generateInput statement sp
 
 generateInput :: IMLVal -> Address -> ([Instruction], Ident)
 generateInput p@(ParamDeclaration flowMode changeMode (Ident name) _) sp = (inputCode, (name, sp, Param flowMode changeMode))
@@ -164,25 +164,56 @@ generateInputCode :: IMLVal -> [Instruction]
 generateInputCode (ParamDeclaration Out  _ (Ident name) _) = [ loadIm32 0 ]
 generateInputCode (ParamDeclaration _    _ (Ident name) _) = [ input32 name ]
 
-generateFunctions :: [IMLVal] -> ([Instruction], Scope) -- uses generateCode
-generateFunctions [] = ([], (0, [])) 
-generateFunctions _ = error "TODO"
+generateFunctions :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateFunctions [] env = ([], env)
 
-addTopLocalScope :: [Ident] -> Enviroment -> Enviroment 
-addTopLocalScope idents (pc, global, locals@((sp, _) : rest)) = (pc, global, (sp, idents) : locals)  
+{-
+
+generateFunctions :: Enviroment -> [IMLVal] -> ([Instruction], Scope, Enviroment)
+generateFunctions startEnv = (instructions, functionScope)
+    where (instructions, (_, functionScope, _)) = foldl connectFunction ([], startEnv)
+
+connectFunction :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
+connectFunction (instructions, env@(pc, (sp, global), [])) val@(FunctionDeclaration name _ _) = (instructions ++ newInstructions, (pc + length newInstructions, (sp + 1, newIdent : global, [])))
+    where (newInstructions, parameters) = generateFunctionCode env val
+          newIdent = (name, pc, Function parameters)
+
+generateFunctionCode :: Enviroment -> IMLVal -> ([Instruction], [IdentInfo])
+generateFunctionCode (pc, (sp, global), []) (FunctionDeclaration name params statements) = (paramInstructions ++ functionInstructions ++ returnInstruction, parameters)
+    where (paramInstructions, parameters) = generateFunctionInputs (reverse params) sp
+          newEnv = (pc + length paramInstructions, (sp + length parameters, global), [])
+          (functionInstructions, _) = generateMultiCode (addLocalScope newEnv functionScope) statements
+          returnInstruction = Return 0
+          
+generateFunctionInputs :: [IMLVal] -> Address -> ([Instruction], [IdentInfo])
+generateFunctionInputs instructions sp = foldl connectFunctionInput ([], (sp, []), []) instructions
+
+connectFunctionInput :: ([Instruction], Scope, [IdentInfo]) -> IMLVal -> ([Instruction], Scope, [IdentInfo])
+connectFunctionInput (instructions, (sp, scope), info) val = (instructions ++ newInstructions, (sp + 1, newIdent : scope, newInfo : info))
+    where (newInstructions, newIdent, newInfo) = generateFunctionInput offset val sp
+
+generateFunctionInput :: IMLVal -> Address -> ([Instruction], Ident, IdentInfo)
+generateFunctionInput (ParamDeclaration flowMode changeMode (Ident name) _) sp = ([ loadIm32 0 ], (name, sp, identInfo), identInfo)
+    where identInfo = Param flowMode changeMode
+
+-}
 
 -- HERE THE LOCAL ENVIROMENT GETS UPDATED
-generateScopeCode :: Enviroment -> [Ident] -> [IMLVal] -> ([Instruction], Enviroment)
-generateScopeCode startEnv idents instructions = dropTopLocalScope $ foldl connectCode ([], addTopLocalScope idents startEnv) instructions
-    where dropTopLocalScope (instructions, (pc, global, _ : locals)) = (instructions, (pc, global, locals))
+generateScopeCode ::  [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateScopeCode statements startEnv = dropLocalScope $ generateMultiCode statements (addLocalScope [] startEnv)
+    where dropLocalScope (instructions, (pc, sp, global, _ : locals)) = (instructions, (pc, sp, global, locals))
+
+generateMultiCode :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateMultiCode instructions startEnv = foldl connectCode ([], startEnv) instructions
 
 connectCode :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
-connectCode (instructions, enviroment) val = (instructions ++ newInstructions, newEnviroment)
-    where (newInstructions, newEnviroment) = generateCode val enviroment
+connectCode (instructions, env) statement = (instructions ++ newInstructions, newEnv)
+    where (newInstructions, newEnv) = generateCode statement env
 
 generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
 generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref ], updateCodeAddress env 2)
 generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updateCodeAddress env 1)
+<<<<<<< HEAD
 generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateCodeAddress newEnviroment 1)
     where (expressionInstructions, newEnviroment) = generateCode expression env
 generateCode (Assignment (Ident name) expression) env = generateAssinmentCode name (thd3 $ getIdent env name) (generateCode expression env) --([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateCodeAddress newEnviroment 2)
@@ -191,9 +222,21 @@ generateCode (IdentFactor ident Nothing) env = generateCode ident env
 generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateCodeAddress newEnviroment 1)
     where (expressionInstructions, newEnviroment) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 generateCode (If condition ifStatement elseStatement) env@(_, global, locals) = (conditionInstructions ++ [condJump (getCodeAddress ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJump (getCodeAddress elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
+=======
+generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateCodeAddress newEnv 1)
+    where (expressionInstructions, newEnv) = generateCode expression env
+generateCode (Assignment (Ident name) expression) env = ([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateCodeAddress newEnv 2)
+    where (expressionInstructions, newEnv) = generateCode expression env
+generateCode (IdentFactor ident Nothing) env = generateCode ident env
+generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateCodeAddress newEnv 1)
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
+generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (conditionInstructions ++ [condJump (getPc ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJumpp (getPc elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
+>>>>>>> 9a4f418c859e42ead2cd59989f300a6a5efeb63d
     where (conditionInstructions, condEndEnv) = generateCode condition env
-          (ifStatementInstructions, ifEndEnv) = generateScopeCode (updateCodeAddress condEndEnv 1) [] ifStatement --TODO use the hole elseStament
-          (elseStatementInstructions, elseEndEnv) = generateScopeCode (updateCodeAddress ifEndEnv 1) [] elseStatement --TODO use the hole elseStament
+          (ifStatementInstructions, ifEndEnv) = generateScopeCode ifStatements (updateCodeAddress condEndEnv 1) --TODO use the hole elseStament
+          (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements (updateCodeAddress ifEndEnv 1) --TODO use the hole elseStament
+-- generateCode (FunctionCall name params) env = (prepParams ++ [ call $ getIdentAddress env name ], updateCodeAddress prepParamsEndEnv 1)
+--    where (prepParams, prepParamsEndEnv) = generateMultiCode params env
 generateCode s _ = error $ "not implemented" ++ show s
 
 generateAssinmentCode :: String -> IdentInfo -> ([Instruction], Enviroment) -> ([Instruction], Enviroment)

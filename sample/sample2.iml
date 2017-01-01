@@ -1,3 +1,8 @@
 prog negate (inOut n: int, out o: int) {
     o := -n;
+    var p: int(0 .. 100)
+    p := 100;
+    p := p - 1;
 }
+
+def sigmoid(a) : float(-1, 1)

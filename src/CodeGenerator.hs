@@ -75,13 +75,8 @@ uncondJump = UncondJump
 type Address = Int
 
 data IdentInfo = Param IMLFlowMode IMLChangeMode
-<<<<<<< HEAD
                | Var IMLType IMLChangeMode
-               | Function
-=======
-               | Var IMLChangeMode
                | Function [IdentInfo]
->>>>>>> 9a4f418c859e42ead2cd59989f300a6a5efeb63d
 
 type Ident = (String, Address, IdentInfo)
 
@@ -213,25 +208,14 @@ connectCode (instructions, env) statement = (instructions ++ newInstructions, ne
 generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
 generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref ], updateCodeAddress env 2)
 generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updateCodeAddress env 1)
-<<<<<<< HEAD
-generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateCodeAddress newEnviroment 1)
-    where (expressionInstructions, newEnviroment) = generateCode expression env
+generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateCodeAddress newEnv 1)
+    where (expressionInstructions, newEnv) = generateCode expression env
 generateCode (Assignment (Ident name) expression) env = generateAssinmentCode name (thd3 $ getIdent env name) (generateCode expression env) --([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateCodeAddress newEnviroment 2)
     --where (expressionInstructions, newEnviroment) = generateCode expression env
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
-generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateCodeAddress newEnviroment 1)
-    where (expressionInstructions, newEnviroment) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
-generateCode (If condition ifStatement elseStatement) env@(_, global, locals) = (conditionInstructions ++ [condJump (getCodeAddress ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJump (getCodeAddress elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
-=======
-generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updateCodeAddress newEnv 1)
-    where (expressionInstructions, newEnv) = generateCode expression env
-generateCode (Assignment (Ident name) expression) env = ([loadAddress $ getIdentAddress env name] ++ expressionInstructions ++ [store], updateCodeAddress newEnv 2)
-    where (expressionInstructions, newEnv) = generateCode expression env
-generateCode (IdentFactor ident Nothing) env = generateCode ident env
 generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateCodeAddress newEnv 1)
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
-generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (conditionInstructions ++ [condJump (getPc ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJumpp (getPc elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
->>>>>>> 9a4f418c859e42ead2cd59989f300a6a5efeb63d
+generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (conditionInstructions ++ [condJump (getPc ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJump (getPc elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
     where (conditionInstructions, condEndEnv) = generateCode condition env
           (ifStatementInstructions, ifEndEnv) = generateScopeCode ifStatements (updateCodeAddress condEndEnv 1) --TODO use the hole elseStament
           (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements (updateCodeAddress ifEndEnv 1) --TODO use the hole elseStament
@@ -249,7 +233,7 @@ generateAssinmentCode name _ (exprInst, exprEnv)= ([loadAddress $ getIdentAddres
 -- preconditon address is already loaded in the stack
 generateClampAssinmentCode :: Instruction -> IMLType -> Enviroment -> ([Instruction], Enviroment)
 generateClampAssinmentCode loadAddInst (ClampInt cmin cmax) env = (checkMaxInst ++ checkMinInst ++ storeInRangeInst ++ storeOverMax ++ storeUnderMin, updateCodeAddress env (afterAssinmentPc - 1))
-    where startPc = getCodeAddress env
+    where startPc = getPc env
           checkMaxLength = 4
           checkMinLength = 4
           storeInRangeLength = 2

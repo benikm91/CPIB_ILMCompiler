@@ -74,7 +74,7 @@ uncondJump = UncondJump
 -- data Access = Direct | Indirect
 type Address = Int
 
-data IdentInfo = Param IMLFlowMode IMLChangeMode
+data IdentInfo = Param IMLType IMLFlowMode IMLChangeMode
                | Var IMLType IMLChangeMode
                | Function [IdentInfo]
 
@@ -139,8 +139,8 @@ toHaskellVM _ = error "Input is not a Program"
 
 generateOutputs :: Scope -> [Instruction]
 generateOutputs [] = []
-generateOutputs ((name, _, Param Out _) : rest) = output32 name : generateOutputs rest
-generateOutputs ((name, _, Param InOut _) : rest) = output32 name : generateOutputs rest
+generateOutputs ((name, _, Param _ Out _) : rest) = output32 name : generateOutputs rest
+generateOutputs ((name, _, Param _ InOut _) : rest) = output32 name : generateOutputs rest
 generateOutputs (_ : rest) = generateOutputs rest
 
 generateInputs :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
@@ -152,9 +152,9 @@ connectInput (instructions, env) statement = (instructions ++ newInstructions, n
     where (newInstructions, newEnv) = generateInput statement env
 
 generateInput :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
-generateInput p@(ParamDeclaration flowMode changeMode (Ident name) _) env@(pc, sp, global, locals) = (newInstructions, newEnv)
+generateInput p@(ParamDeclaration flowMode changeMode (Ident name) imlType) env@(pc, sp, global, locals) = (newInstructions, newEnv)
     where newInstructions = generateInputCode p
-          newIdent = (name, sp, Param flowMode changeMode)
+          newIdent = (name, sp, Param imlType flowMode changeMode)
           newEnv = (pc + length newInstructions, sp + 1, global, addToLocalScope locals newIdent)
 
 generateInputCode :: IMLVal -> [Instruction]
@@ -225,6 +225,9 @@ generateAssinmentCode :: String -> IdentInfo -> ([Instruction], Enviroment) -> (
 generateAssinmentCode name (CodeGenerator.Var var@(ClampInt _ _) _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updateCodeAddress clampEnv 1)
     where loadInst = loadAddress $ getIdentAddress exprEnv name
           (clampInst, clampEnv) = generateClampAssinmentCode loadInst var exprEnv
+generateAssinmentCode name (Param var@(ClampInt _ _) _ _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updateCodeAddress clampEnv 1)
+    where loadInst = loadAddress $ getIdentAddress exprEnv name
+          (clampInst, clampEnv) = generateClampAssinmentCode loadInst var exprEnv
 generateAssinmentCode name (CodeGenerator.Var var@(ArrayInt _ _) _) (exprInst, exprEnv) = error "TODO"
 generateAssinmentCode name _ (exprInst, exprEnv)= ([loadAddress $ getIdentAddress exprEnv name] ++ exprInst ++ [store], updateCodeAddress exprEnv 2)
 
@@ -237,9 +240,9 @@ generateClampAssinmentCode loadAddInst (ClampInt cmin cmax) env = (checkMaxInst 
           storeInRangeLength = 2
           storeOverMaxLenght = 5
           storeUnderMinLenght = 4
-          afterAssinmentPc = startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + 1
-          checkMaxInst = [Dup, loadIm32 $ toInteger cmax, le32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength)]
-          checkMinInst = [Dup, loadIm32 $ toInteger cmin, gt32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght)]
+          afterAssinmentPc = startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + storeOverMaxLenght + 1
+          checkMaxInst = [Dup, loadIm32 $ toInteger cmax, le32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + 1)]
+          checkMinInst = [Dup, loadIm32 $ toInteger cmin, gt32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght + 1)]
           storeInRangeInst = [Store, uncondJump afterAssinmentPc]
           storeOverMax = [Store, loadAddInst, loadIm32 $ toInteger cmax, store, uncondJump afterAssinmentPc]
           storeUnderMin = [Store, loadAddInst, loadIm32 $ toInteger cmin, store]

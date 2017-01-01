@@ -24,8 +24,8 @@ data IMLLiteral = IMLBool Bool | IMLInt Int
             deriving Show
 
 data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclarations] [FunctionDeclarations] [Statements]
-            | Ident String
-            | IdentDeclaration IMLChangeMode IMLVal IMLType
+            | Ident String -- name
+            | IdentDeclaration IMLChangeMode IMLVal IMLType -- changeMode Ident type
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | IdentFactor IMLVal (Maybe IMLVal)
             | IdentArray IMLVal Int -- name index

@@ -80,7 +80,7 @@ type Ident = (String, Address, IdentInfo)
 type Scope = (Address, [Ident])
 
 -- stack of scopes
-type Enviroment = (CodeAddress, Scope, [Scope]) -- Global and Locals
+type Enviroment = (CodeAddress, Scope, [Scope]) -- PC, Global, Locals
 
 addLocalIdent :: Enviroment -> Ident -> Enviroment
 -- TODO Check if Ident already exists => Throw error
@@ -135,7 +135,8 @@ toHaskellVM (Program (Ident name) params functions statements) = (name, toArray 
     where codeArray = functionInstructions ++ inputInstructions ++ statementInstructions ++ outputInstructions ++ [Stop]
           (inputInstructions, inputScope) = generateInputs params
           (functionInstructions, functionsScope) = generateFunctions functions
-          statementInstructions = generateScopeCode statements (length functionInstructions + length inputInstructions, globalScope, [localScope])
+          pc = length functionInstructions + length inputInstructions
+          (statementInstructions, _) = generateScopeCode (pc, globalScope, [localScope]) [] statements
           outputInstructions = generateOutputs inputScope
           globalScope = functionsScope
           localScope = inputScope
@@ -167,14 +168,17 @@ generateFunctions :: [IMLVal] -> ([Instruction], Scope) -- uses generateCode
 generateFunctions [] = ([], (0, [])) 
 generateFunctions _ = error "TODO"
 
--- HERE THE LOCAL ENVIROMENT GETS UPDATED
-generateScopeCode :: [IMLVal] -> Enviroment -> [Instruction]
-generateScopeCode [] _ = [] 
-generateScopeCode (next : rest) enviroment = newInstructions ++ generateScopeCode rest newEnviroment
-    where (newInstructions, newEnviroment) = generateCode next enviroment 
+addTopLocalScope :: [Ident] -> Enviroment -> Enviroment 
+addTopLocalScope idents (pc, global, locals@((sp, _) : rest)) = (pc, global, (sp, idents) : locals)  
 
--- generateScopeCode p@(IdentDecleration ___ : rest) enviroment = instructions ++ (generateScopeCode rest (addLocalIdent enviroment "lala"))
---    where instructions = generateCode p
+-- HERE THE LOCAL ENVIROMENT GETS UPDATED
+generateScopeCode :: Enviroment -> [Ident] -> [IMLVal] -> ([Instruction], Enviroment)
+generateScopeCode startEnv idents instructions = dropTopLocalScope $ foldl connectCode ([], addTopLocalScope idents startEnv) instructions
+    where dropTopLocalScope (instructions, (pc, global, _ : locals)) = (instructions, (pc, global, locals))
+
+connectCode :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
+connectCode (instructions, enviroment) val = (instructions ++ newInstructions, newEnviroment)
+    where (newInstructions, newEnviroment) = generateCode val enviroment
 
 generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
 generateCode (Ident name) env = ([ loadAddress $ getIdentAddress env name, deref ], updateCodeAddress env 2)
@@ -186,10 +190,10 @@ generateCode (Assignment (Ident name) expression) env = ([loadAddress $ getIdent
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
 generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updateCodeAddress newEnviroment 1)
     where (expressionInstructions, newEnviroment) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
-generateCode (If condition ifStatement elseStatement) env = (conditionInstructions ++ [condJump (getCodeAddress ifEnv + 1)] ++ ifStatementInstructions ++ [uncondJumpp (getCodeAddress elseEnv + 1)] ++ elseStatementInstructions, elseEnv)
-    where (conditionInstructions, condEnv) = generateCode condition env
-          (ifStatementInstructions, ifEnv) = generateCode (head ifStatement) (updateCodeAddress condEnv 1) --TODO use the hole elseStament
-          (elseStatementInstructions, elseEnv) = generateCode (head elseStatement) (updateCodeAddress ifEnv 1) --TODO use the hole elseStament
+generateCode (If condition ifStatement elseStatement) env@(_, global, locals) = (conditionInstructions ++ [condJump (getCodeAddress ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJumpp (getCodeAddress elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
+    where (conditionInstructions, condEndEnv) = generateCode condition env
+          (ifStatementInstructions, ifEndEnv) = generateScopeCode (updateCodeAddress condEndEnv 1) [] ifStatement --TODO use the hole elseStament
+          (elseStatementInstructions, elseEndEnv) = generateScopeCode (updateCodeAddress ifEndEnv 1) [] elseStatement --TODO use the hole elseStament
 generateCode s _ = error $ "not implemented" ++ show s
 
 -- generateCodeWithNewScope :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)

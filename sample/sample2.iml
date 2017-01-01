@@ -1,8 +1,10 @@
 prog negate (in m:int, inOut n: int, out o: int) {
     if(m < n) {
         o:= 1;
+        o:= 2;
     }
-    else{
+    else {
+        o := 0;
         o := 0;
     }
 }

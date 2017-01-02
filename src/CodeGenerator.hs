@@ -105,8 +105,10 @@ updatePcSp :: Enviroment -> Int -> Int -> Enviroment
 updatePcSp (pc, sp, global, locals) i k = (pc + i, sp + k, global, locals)
 
 addLocalIdent :: Enviroment -> Ident -> Enviroment
--- TODO Check if Ident already exists => Throw error
-addLocalIdent (pc, sp, global, locals) ident = (pc, sp, global, addToLocalScope locals ident)
+addLocalIdent env@(pc, sp, global, locals) ident@(name, _, _) = case findIdent of
+    Nothing -> (pc, sp, global, addToLocalScope locals ident)
+    Just _ -> error ("Identifier with name "++ name ++" already defined in scope")
+    where findIdent = getIdentMaybe env name
 
 addLocalScope :: Scope -> Enviroment -> Enviroment 
 addLocalScope scope (pc, sp, global, locals) = (pc, sp, global, [scope] ++ locals)  
@@ -140,6 +142,12 @@ getIdent (_, _, global, []) name = case findInScope global name of
 getIdent (pc, sp, global, next : rest) name = case findInScope next name of
     Nothing -> getIdent (pc, sp, global, rest) name
     Just a -> a
+
+getIdentMaybe :: Enviroment -> String -> Maybe Ident
+getIdentMaybe (_, _, global, []) name = findInScope global name
+getIdentMaybe (pc, sp, global, next : rest) name = case findInScope next name of
+    Nothing -> getIdentMaybe (pc, sp, global, rest) name
+    Just a -> Just a
 
 getIdentAddress :: Enviroment -> String -> Address
 getIdentAddress a b = (snd3 (getIdent a b))

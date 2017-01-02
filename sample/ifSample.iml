@@ -1,0 +1,9 @@
+prog negate (out o: int) {
+    var i : int;
+    i := 5;
+    if (i < 3) {
+        o := i - 1;
+    } else {
+        o := i + 1;
+    }
+}

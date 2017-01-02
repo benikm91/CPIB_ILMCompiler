@@ -106,7 +106,7 @@ updatePcSp (pc, sp, global, locals) i k = (pc + i, sp + k, global, locals)
 
 addLocalIdent :: Enviroment -> Ident -> Enviroment
 -- TODO Check if Ident already exists => Throw error
-addLocalIdent (pc, sp, global, locals) ident = (pc, sp + 1, global, addToLocalScope locals ident)
+addLocalIdent (pc, sp, global, locals) ident = (pc, sp, global, addToLocalScope locals ident)
 
 addLocalScope :: Scope -> Enviroment -> Enviroment 
 addLocalScope scope (pc, sp, global, locals) = (pc, sp, global, [scope] ++ locals)  

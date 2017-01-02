@@ -1,3 +1,14 @@
-prog negate (in m:int, inOut n: int, out o: int(0..10)) {
-    o := m + n;
+prog negate (in m:int, out o: int) {
+
+    def square (in m: int, out n: int) {
+        n := m * m;
+    }
+
+    var n : int;
+    n := 0;
+
+    square(m, n);
+
+    o := n + n;
+
 }

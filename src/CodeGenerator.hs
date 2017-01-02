@@ -290,7 +290,7 @@ generateIdentDeclarationCode name changeMode var@(ClampInt cmin cmax) env
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var var changeMode)
 generateIdentDeclarationCode name changeMode var@(ArrayInt amin amax) env
     | amax <= amin = error "Max of Array must be greater than min"
-    | otherwise = (instructions, updatePcSp newEnv (amax - amin) (amax - amin))
+    | otherwise =  (instructions, updatePcSp newEnv (amax - amin + 1) (amax - amin + 1))
     where instructions = generateIdentDeclarationArrayCode amin amax
           newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var var changeMode)
 
@@ -300,16 +300,20 @@ generateIdentDeclarationArrayCode i amax
     | otherwise = [loadIm32 0] ++ generateIdentDeclarationArrayCode (i+1) amax
 
 generateAssignmentCode :: IMLVal -> IdentInfo -> ([Instruction], Enviroment) -> ([Instruction], Enviroment)
-generateAssignmentCode (Ident name) (CodeGenerator.Var var@(ClampInt _ _) _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePc clampEnv 1)
+-- clamp assginment (var)
+generateAssignmentCode (Ident name) (CodeGenerator.Var var@(ClampInt _ _) _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePcSp clampEnv 1 (-1))
     where loadInst = loadAddress $ getIdentAddress exprEnv name
           (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
-generateAssignmentCode (Ident name) (Param var@(ClampInt _ _) _ _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePc clampEnv 1)
+-- clamp assginment (param)
+generateAssignmentCode (Ident name) (Param var@(ClampInt _ _) _ _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePcSp clampEnv 1 (-1))
     where loadInst = loadAddress $ getIdentAddress exprEnv name
           (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
-generateAssignmentCode (IdentArray (Ident name) i) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = ([loadAddress arrayAddres] ++ exprInst ++ [store], updatePc exprEnv 2)
+-- array assignment
+generateAssignmentCode (IdentArray (Ident name) i) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = ([loadAddress arrayAddres] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))
     where startAddress = getIdentAddress exprEnv name
           arrayAddres = getArrayAddress i amin amax startAddress
-generateAssignmentCode (Ident name) _ (exprInst, exprEnv)= ([loadAddrRel $ getIdentAddress exprEnv name] ++ exprInst ++ [store], updatePc exprEnv 2)
+-- normal
+generateAssignmentCode (Ident name) _ (exprInst, exprEnv)= ([loadAddrRel $ getIdentAddress exprEnv name] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))
 
 -- preconditon address is already loaded in the stack
 generateClampAssignmentCode :: Instruction -> IMLType -> Enviroment -> ([Instruction], Enviroment)

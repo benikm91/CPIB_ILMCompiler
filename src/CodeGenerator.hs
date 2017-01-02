@@ -266,7 +266,7 @@ generateCode (FunctionCall (Ident name) params) env = (prepParams ++ [ call $ ge
           (storeOutputs, storeOutputsEndEnv) = generateStoreOutputsCode (zip params (getParams $ getIdentInfo env name)) (updatePc prepParamsEndEnv 1)
 generateCode (While condition statements) env@(_, _, global, locals) =  (conditionInstructions ++ [condJump (getPc statemEndEnv + 1)] ++ statmentInstructions ++ [uncondJump (getPc env)], statemEndEnv)
     where (conditionInstructions, condEndEnv) = generateCode condition env
-          (statmentInstructions, statemEndEnv) = generateScopeCode statements (updatePc condEndEnv 1)
+          (statmentInstructions, statemEndEnv) = generateScopeCode statements (updatePc condEndEnv 2)
 generateCode (IdentDeclaration changeMode (Ident name) imlType) env = generateIdentDeclarationCode name changeMode imlType env
 generateCode s _ = error $ "not implemented" ++ show s
 
@@ -322,7 +322,7 @@ generateClampAssignmentCode loadAddInst (ClampInt cmin cmax) env = (checkMaxInst
           storeUnderMinLenght = 4
           afterAssignmentPc = startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + storeOverMaxLenght + 1
           checkMaxInst = [Dup, loadIm32 $ toInteger cmax, le32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + 1)]
-          checkMinInst = [Dup, loadIm32 $ toInteger cmin, gt32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght + 1)]
+          checkMinInst = [Dup, loadIm32 $ toInteger cmin, ge32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght + 1)]
           storeInRangeInst = [Store, uncondJump afterAssignmentPc]
           storeOverMax = [Store, loadAddInst, loadIm32 $ toInteger cmax, store, uncondJump afterAssignmentPc]
           storeUnderMin = [Store, loadAddInst, loadIm32 $ toInteger cmin, store]

@@ -1,13 +1,13 @@
-prog negate (in m:int, inOut n: int, out o: int(15..100)) {
-    o := m + n;
+prog negate (out o: int) {
     var i : int;
-    i := 0;
+    i := 5;
+    o := i + 15;
     while (o > 15) {
         o := o - 1;
-        i := i + 1;
     }
-    o := i;
-    if (i < 50) {
-        i := 50;
+    if (i < 3) {
+        o := i - 1;
+    } else {
+        o := i + 1;
     }
 }

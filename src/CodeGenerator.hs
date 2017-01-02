@@ -282,7 +282,7 @@ handleNext (IdentFactor (Ident name) _, (_, _, Param _ InOut changeMode)) env@(_
 handleNext _ env = ([], updateSp env (-1))
 
 generateIdentDeclarationCode :: String -> IMLChangeMode -> IMLType -> Enviroment -> ([Instruction], Enviroment)
-generateIdentDeclarationCode name changeMode Int env = ([loadIm32 0], updatePcSp env 1 1)
+generateIdentDeclarationCode name changeMode Int env = ([loadIm32 0], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var Int changeMode)
 generateIdentDeclarationCode name changeMode var@(ClampInt cmin cmax) env 
     | cmax <= cmin = error "Max of Clamp must be greater than min"

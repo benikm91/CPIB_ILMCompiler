@@ -28,7 +28,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | IdentDeclaration IMLChangeMode IMLVal IMLType -- changeMode Ident type
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | IdentFactor IMLVal (Maybe IMLVal)
-            | IdentArray IMLVal Int -- name index  TODO also use Identifiers
+            | IdentArray IMLVal IMLVal
             | DyadicOpr IMLOperation IMLVal IMLVal
             | MonadicOpr IMLOperation IMLVal
             | Literal IMLLiteral
@@ -216,10 +216,10 @@ parseArrayIdent = do
     spaces
     string "["
     spaces
-    index <- many1 digit
+    index <- parseExpr
     spaces
     string "]"
-    return $ IdentArray ident (read index :: Int)
+    return $ IdentArray ident index
 
 parseIdentDeclaration :: Parser IMLVal
 parseIdentDeclaration = do 
@@ -462,10 +462,10 @@ parseArrayIdentFactor = do
     spaces
     string "["
     spaces
-    i <- many1 digit
+    i <- parseExpr
     spaces
     string "]"
-    return $ IdentArray ident (read i :: Int)
+    return $ IdentArray ident i
 
 -- TODO Perhaps parseTrue, parseFalse, parseNumber as where functions :) not sure
 parseTrue :: Parser IMLVal

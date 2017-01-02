@@ -1,0 +1,10 @@
+prog forSample (out o:int) {
+   var i : int(0 .. 10);
+   var a : int;
+   i := 5;
+
+   for(i) {
+      a := a + 1;
+   }
+   o := a;
+}

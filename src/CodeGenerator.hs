@@ -105,8 +105,10 @@ updatePcSp :: Enviroment -> Int -> Int -> Enviroment
 updatePcSp (pc, sp, global, locals) i k = (pc + i, sp + k, global, locals)
 
 addLocalIdent :: Enviroment -> Ident -> Enviroment
--- TODO Check if Ident already exists => Throw error
-addLocalIdent (pc, sp, global, locals) ident = (pc, sp, global, addToLocalScope locals ident)
+addLocalIdent env@(pc, sp, global, locals) ident@(name, _, _) = case findIdent of
+    Nothing -> (pc, sp, global, addToLocalScope locals ident)
+    Just _ -> error ("Identifier with name "++ name ++" already defined in scope")
+    where findIdent = getIdentMaybe env name
 
 addLocalScope :: Scope -> Enviroment -> Enviroment 
 addLocalScope scope (pc, sp, global, locals) = (pc, sp, global, [scope] ++ locals)  
@@ -140,6 +142,12 @@ getIdent (_, _, global, []) name = case findInScope global name of
 getIdent (pc, sp, global, next : rest) name = case findInScope next name of
     Nothing -> getIdent (pc, sp, global, rest) name
     Just a -> a
+
+getIdentMaybe :: Enviroment -> String -> Maybe Ident
+getIdentMaybe (_, _, global, []) name = findInScope global name
+getIdentMaybe (pc, sp, global, next : rest) name = case findInScope next name of
+    Nothing -> getIdentMaybe (pc, sp, global, rest) name
+    Just a -> Just a
 
 getIdentAddress :: Enviroment -> String -> Address
 getIdentAddress a b = (snd3 (getIdent a b))
@@ -255,18 +263,33 @@ generateCode (Assignment imlIdent@(IdentArray (Ident name) _) expression) env = 
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
 generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updatePcSp newEnv 1 (-1))
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
-generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (conditionInstructions ++ [condJump (getPc ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJump (getPc elseEndEnv)] ++ elseStatementInstructions, elseEndEnv)
-    where (conditionInstructions, condEndEnv) = generateCode condition env
-          (ifStatementInstructions, ifEndEnv) = generateScopeCode ifStatements (updatePc condEndEnv 1) --TODO use the hole elseStament
-          (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements (updatePc ifEndEnv 1) --TODO use the hole elseStament
-generateCode (FunctionCall (Ident name) params) env = (prepParams ++ [ call $ getIdentAddress env name ] ++ storeOutputs, storeOutputsEndEnv)
+generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (condInstructions ++ branchInstructions ++ ifStatementInstructions ++ jumpInstructions ++ elseStatementInstructions, newEnv)
+    where (condInstructions, condEndEnv) = generateCode condition env
+          (branchInstructions, branchEndEnv) = ([condJump (getPc ifEndEnv + 1)], updatePcSp condEndEnv 1 (-1))
+          (ifStatementInstructions, ifEndEnv) = generateScopeCode ifStatements branchEndEnv
+          (jumpInstructions, jumpEndEnv) = ([uncondJump (getPc newEnv)], updatePc ifEndEnv 1)
+          (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements jumpEndEnv
+          newEnv = elseEndEnv
+generateCode (FunctionCall (Ident name) params) env = (prepParams ++ callInstructions ++ storeOutputs, storeOutputsEndEnv)
     where (prepParams, prepParamsEndEnv) = generateMultiCode params env
-          (storeOutputs, storeOutputsEndEnv) = generateStoreOutputsCode (zip params (getParams $ getIdentInfo env name)) (updatePc prepParamsEndEnv 1)
-generateCode (While condition statements) env@(_, _, global, locals) =  (conditionInstructions ++ [condJump ((getPc statemEndEnv) + 1)] ++ statmentInstructions ++ [uncondJump (getPc env)], (updatePc statemEndEnv 1))
-    where (conditionInstructions, condEndEnv) = generateCode condition env
-          (statmentInstructions, statemEndEnv) = generateScopeCode statements (updatePc condEndEnv 1)
+          (callInstructions, callEndEnv) = ([ call $ getIdentAddress env name ], updatePc prepParamsEndEnv 1)
+          (storeOutputs, storeOutputsEndEnv) = generateStoreOutputsCode (reverse (zip (params) (getParams $ getIdentInfo env name))) callEndEnv
+generateCode (While condition statements) env@(_, _, global, locals) =  (condInstructions ++ leaveInstructions ++ statmentInstructions ++ goBackInstructions, newEnv)
+    where (condInstructions, condEndEnv) = generateCode condition env
+          (leaveInstructions, leaveEndEnv) = ([condJump (getPc newEnv)], updatePcSp condEndEnv 1 (-1))
+          (statmentInstructions, statementsEndEnv) = generateScopeCode statements leaveEndEnv
+          (goBackInstructions, goBackEndEnv) = ([uncondJump (getPc env)], updatePc statementsEndEnv 1)
+          newEnv = goBackEndEnv
 generateCode (IdentDeclaration changeMode (Ident name) imlType) env = generateIdentDeclarationCode name changeMode imlType env
+generateCode (For (IdentFactor (Ident name) Nothing) statements) env = generateForCode (getIdent env name) statements env
+generateCode (For _ _) env = error "For only accepts an clamp Int"
 generateCode s _ = error $ "not implemented" ++ show s
+
+generateForCode :: Ident -> [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateForCode ident@(name, addr, (CodeGenerator.Var (ClampInt cmin cmax) _)) statements env = generateCode (While newCondition newStatements) env
+    where newCondition = (DyadicOpr Parser.Lt (IdentFactor (Ident name) Nothing) (Literal (IMLInt cmax)))
+          newStatements = statements ++ [(Assignment (Ident name) (DyadicOpr Parser.Plus (IdentFactor (Ident name) Nothing) (Literal (IMLInt 1))))]
+generateForCode _ _ _ = error "For only accepts an clamp Int" 
 
 generateStoreOutputsCode :: [(IMLVal, Ident)] -> Enviroment -> ([Instruction], Enviroment)
 generateStoreOutputsCode [] env = ([], env)
@@ -275,8 +298,8 @@ generateStoreOutputsCode (next : rest) env = (newInstructions ++ restInstruction
           (restInstructions, finalEnv) = generateStoreOutputsCode rest newEnv
 
 handleNext :: (IMLVal, Ident) -> Enviroment -> ([Instruction], Enviroment)
-handleNext (IdentFactor (Ident name) _, (_, _, Param _ Out   changeMode)) env@(_, sp, _, _) = ([ loadAddrRel $ getIdentAddress env name, loadAddrRel $ sp - 1, deref, store ], updateSp (updatePc env 4) (-1))
-handleNext (IdentFactor (Ident name) _, (_, _, Param _ InOut changeMode)) env@(_, sp, _, _) = ([ loadAddrRel $ getIdentAddress env name, loadAddrRel $ sp - 1, deref, store ], updateSp (updatePc env 4) (-1))
+handleNext (IdentFactor (Ident name) _, (_, _, Param _ Out   changeMode)) env@(_, sp, _, _) = ([ loadAddrRel $ getIdentAddress env name, loadAddrRel $ sp - 1, deref, store ], updatePcSp env 4 (-1))
+handleNext (IdentFactor (Ident name) _, (_, _, Param _ InOut changeMode)) env@(_, sp, _, _) = ([ loadAddrRel $ getIdentAddress env name, loadAddrRel $ sp - 1, deref, store ], updatePcSp env 4 (-1))
 handleNext _ env = ([], updateSp env (-1))
 
 generateIdentDeclarationCode :: String -> IMLChangeMode -> IMLType -> Enviroment -> ([Instruction], Enviroment)

@@ -243,13 +243,10 @@ connectCode (instructions, env) statement = (instructions ++ newInstructions, ne
 
 generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
 generateCode (Ident name) env = ([loadAddrRel $ getIdentAddress env name, deref ], updatePcSp env 2 1)
-generateCode (IdentArray (Ident name) i) env = ([loadAddress arrayAddres, deref ], updatePcSp env 2 1)
-    where startAddress =  getIdentAddress env name
-          ident@(_, add, identInfo) = getIdent env name
-          imlType = extractImlType identInfo
-          amax = extractArrayMax imlType
-          amin = extractArrayMin imlType
-          arrayAddres = getArrayAddress i amin amax startAddress
+-- array deref TODO: set correct location
+generateCode (IdentArray (Ident name) indexExpr) env = (loadAddressInstr ++ [deref], updatePc loadAddressEnv 1)
+    where (loadAddressInstr, loadAddressEnv) = loadArrayAddress (IdentArray (Ident name) indexExpr) env 
+          --arrayAddres = getArrayAddress index amin amax startAddress
 generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
 generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updatePc newEnv 1)
     where (expressionInstructions, newEnv) = generateCode expression env
@@ -310,9 +307,8 @@ generateAssignmentCode (Ident name) (Param var@(ClampInt _ _) _ _) (exprInst, ex
     where loadInst = loadAddress $ getIdentAddress exprEnv name
           (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
 -- array assignment
-generateAssignmentCode (IdentArray (Ident name) i) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = ([loadAddress arrayAddres] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))
-    where startAddress = getIdentAddress exprEnv name
-          arrayAddres = getArrayAddress i amin amax startAddress
+generateAssignmentCode (IdentArray (Ident name) i) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
+    where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name) i) exprEnv
 -- normal
 generateAssignmentCode (Ident name) _ (exprInst, exprEnv)= ([loadAddrRel $ getIdentAddress exprEnv name] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))
 
@@ -362,11 +358,14 @@ extractArrayMin (ArrayInt amin _) = amin
 extractArrayMax :: IMLType -> Int
 extractArrayMax (ArrayInt _ amax) = amax
 
-getArrayAddress :: Int -> Int -> Int -> Int -> Int
-getArrayAddress i amin amax startAddr
-    | i < amin = error ("index: " ++ show i ++ " of array is to small must be at least " ++ show amin)
-    | i > amax = error "index of array is to large"
-    | otherwise = startAddr + (i - amin)
+loadArrayAddress :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
+loadArrayAddress (IdentArray (Ident name) indexExpr) env = (indexStatments ++ [loadIm32 $ toInteger startAddress, Add Int32VmTy mempty, loadIm32 $ toInteger  amin, Sub Int32VmTy mempty, Convert Int32VmTy IntVmTy mempty], updatePcSp newEnv 5 1)
+    where startAddress = getIdentAddress env name
+          ident@(_, add, identInfo) = getIdent env name
+          imlType = extractImlType identInfo
+          amax = extractArrayMax imlType
+          amin = extractArrayMin imlType
+          (indexStatments, newEnv) = generateCode indexExpr env
 
 program :: (Array Int Instruction)
 -- program = array (0, 4) [(0, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 5))), (1, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 4))), (2, Add Int32VmTy mempty), (3, Output (IntTy (32 :: Int)) "HALLO"), (4, Stop)]

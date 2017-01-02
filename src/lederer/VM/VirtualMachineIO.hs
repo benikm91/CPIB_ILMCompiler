@@ -91,17 +91,21 @@ data Instruction
   deriving (Show)
 
 readS :: Stack -> StoreAddress -> VmValue
-readS stack addr = stack !! ((length stack - 1) - addr)
+readS stack addr 
+  | addr < 0 = error ("readS: Stack cannot be less than 0 addres is: " ++ show addr ++ "Stack is: " ++ show stack ++ "\n")
+  | otherwise  = stack !! ((length stack - 1) - addr)
+
 
 updateS :: Stack -> (StoreAddress, VmValue) -> Stack
-updateS stack (addr, val) = stack'
+updateS stack (addr, val) 
+  | addr < 0  = error ("updateS: Stack cannot be less than 0 addres is: " ++ show addr ++ "Stack is: " ++ show stack ++ "\n")
+  | otherwise = stack'
   where
     stack' = top ++ (val : bottom)
     (top, _ : bottom) = splitAt ((length stack - 1) - addr) stack
 
 return2 :: State -> IO (Check State)
 return2 = return . return
-
 
 
 execInstr :: Instruction -> State -> IO (Check State)

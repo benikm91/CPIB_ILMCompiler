@@ -92,13 +92,15 @@ data Instruction
 
 readS :: Stack -> StoreAddress -> VmValue
 readS stack addr 
-  | addr < 0 = error ("readS: Stack cannot be less than 0 addres is: " ++ show addr ++ "Stack is: " ++ show stack ++ "\n")
-  | otherwise  = stack !! ((length stack - 1) - addr)
+  | addr < 0 = error ("readS: Addr cannot be negative | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | ((length stack - 1) - addr) < 0 = error ("readS: Stack cannot be less than 0 | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | otherwise = stack !! ((length stack - 1) - addr)
 
 
 updateS :: Stack -> (StoreAddress, VmValue) -> Stack
 updateS stack (addr, val) 
-  | addr < 0  = error ("updateS: Stack cannot be less than 0 addres is: " ++ show addr ++ "Stack is: " ++ show stack ++ "\n")
+  | addr < 0  = error ("Addr cannot be negative | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | ((length stack - 1) - addr) < 0 = error ("updateS: Stack cannot be less than 0 | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
   | otherwise = stack'
   where
     stack' = top ++ (val : bottom)

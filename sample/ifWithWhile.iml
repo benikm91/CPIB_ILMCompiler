@@ -1,0 +1,12 @@
+prog negate (in m:int, inOut n: int, out o: int) {
+    var i : int;
+    while (i < 10) {
+        if (o > 50) {
+            o := 50;
+        } else {    
+            o := 99;
+        }
+        i := i + 1;
+    }
+}
+

@@ -233,6 +233,7 @@ generateFunctionInputCode (ParamDeclaration flowMode _ (Ident name) _) = [ ]
 generateScopeCode ::  [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
 generateScopeCode statements startEnv = dropLocalScope $ generateMultiCode statements (addLocalScope [] startEnv)
     where dropLocalScope (instructions, (pc, sp, global, _ : locals)) = (instructions, (pc, sp, global, locals))
+
 generateMultiCode :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
 generateMultiCode instructions startEnv = foldl connectCode ([], startEnv) instructions
 

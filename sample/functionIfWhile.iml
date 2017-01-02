@@ -1,0 +1,18 @@
+prog negate (out o: int) {
+    
+    var m : int;
+    
+    var t : int;
+
+    if (t = 0) { 
+        m := m;
+    }
+    m := 5;
+
+    while (m < 3) {
+        m := m + 1;
+    }
+    o := m;
+    
+}
+

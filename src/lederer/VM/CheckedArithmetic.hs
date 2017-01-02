@@ -9,6 +9,7 @@ module CheckedArithmetic
       divEexcla, modEexcla, divFexcla, modFexcla, divTexcla, modTexcla),
     checkIntImplementation,
     Int32(), Int64(), Int1024(),
+    fromInttoInt32,
     fromInt32toInt, fromInt32toInt64, fromInt32toInt1024, fromInt64toInt1024,
     fromInt64toInt32, fromInt1024toInt32, fromInt1024toInt64,
     fromIntegerToInt32, fromIntegerToInt64, fromIntegerToInt1024
@@ -179,6 +180,8 @@ instance CheckedInt Int32
 instance CheckedInt Int64
 instance CheckedInt Int1024
 
+fromInttoInt32 :: Int -> Int32
+fromInttoInt32 a = (Int32 a)
 fromInt32toInt :: Int32 -> Int
 fromInt32toInt (Int32 a) = a
 fromInt32toInt64 :: Int32 -> Int64

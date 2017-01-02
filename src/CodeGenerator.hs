@@ -256,11 +256,21 @@ generateCode (IdentArray (Ident name) indexExpr) env = (loadAddressInstr ++ [der
     where (loadAddressInstr, loadAddressEnv) = loadArrayAddress (IdentArray (Ident name) indexExpr) env 
           --arrayAddres = getArrayAddress index amin amax startAddress
 generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
+generateCode (MonadicOpr Parser.Plus expression) env = (expressionInstructions, updatePc newEnv 1)
+    where (expressionInstructions, newEnv) = generateCode expression env
 generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updatePc newEnv 1)
     where (expressionInstructions, newEnv) = generateCode expression env
+
+generateCode (MonadicOpr Parser.Not expression) env = (expressionInstructions ++ [Convert IntVmTy Int32VmTy mempty, loadIm32 1, add32, loadIm32 2, ModFloor Int32VmTy mempty, Convert Int32VmTy IntVmTy mempty], updatePc newEnv 6)
+    where (expressionInstructions, newEnv) = generateCode expression env
+
 generateCode (Assignment imlIdent@(Ident name) expression) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name) (generateCode expression env)
 generateCode (Assignment imlIdent@(IdentArray (Ident name) _) expression) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name) (generateCode expression env)
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
+generateCode (DyadicOpr Parser.And a b) env = (expressionInstructions ++ [mult32, loadIm32 0, gt32], updatePcSp newEnv 5 (-1))
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ [Convert IntVmTy Int32VmTy mempty] ++ fst (generateCode b env) ++ [Convert IntVmTy Int32VmTy mempty], snd $ generateCode b (snd $ generateCode a env))
+generateCode (DyadicOpr Parser.Or a b) env = (expressionInstructions ++ [add32, loadIm32 0, gt32], updatePcSp newEnv 5 (-1))
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ [Convert IntVmTy Int32VmTy mempty] ++ fst (generateCode b env) ++ [Convert IntVmTy Int32VmTy mempty], snd $ generateCode b (snd $ generateCode a env))
 generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updatePcSp newEnv 1 (-1))
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (condInstructions ++ branchInstructions ++ ifStatementInstructions ++ jumpInstructions ++ elseStatementInstructions, newEnv)

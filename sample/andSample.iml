@@ -1,0 +1,12 @@
+prog and (out o: int) {
+    var i : int;
+    var j : int;
+    i := 1;
+    j := 2;
+    if (!(i = 1 &? j = 2)) {
+        o := 10;
+    }
+    if (i = 2 |? j = 2) {
+        o := o + 10;
+    }
+}

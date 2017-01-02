@@ -457,8 +457,8 @@ execInstr (Output (IntTy 64) indicator) (pc, fp, Int64VmVal val : stack) =
 execInstr (Output (IntTy 1024) indicator) (pc, fp, Int1024VmVal val : stack) =
   do putStrLn ("! " ++ indicator ++ " = " ++ show val ++ " : " ++ show (IntTy 1024))
      return2 (pc + 1, fp, stack)
-execInstr instr _ =
-  return (Left (ErrorMsg ([], "internal error VM: " ++ show instr)))
+execInstr instr state =
+  return (Left (ErrorMsg ([], "internal error VM state: "++ show state ++" : " ++ show instr)))
 
 execProgram :: VMProgram -> IO (Check BaseIdent)
 execProgram (progId, code) = run (Right (0, 0, []))

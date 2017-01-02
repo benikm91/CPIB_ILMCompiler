@@ -264,7 +264,7 @@ generateCode (If condition ifStatements elseStatements) env@(_, _, global, local
 generateCode (FunctionCall (Ident name) params) env = (prepParams ++ [ call $ getIdentAddress env name ] ++ storeOutputs, storeOutputsEndEnv)
     where (prepParams, prepParamsEndEnv) = generateMultiCode params env
           (storeOutputs, storeOutputsEndEnv) = generateStoreOutputsCode (zip params (getParams $ getIdentInfo env name)) (updatePc prepParamsEndEnv 1)
-generateCode (While condition statements) env@(_, _, global, locals) =  (conditionInstructions ++ [condJump (getPc statemEndEnv + 1)] ++ statmentInstructions ++ [uncondJump (getPc env)], statemEndEnv)
+generateCode (While condition statements) env@(_, _, global, locals) =  (conditionInstructions ++ [condJump (getPc statemEndEnv)] ++ statmentInstructions ++ [uncondJump (getPc env)], statemEndEnv)
     where (conditionInstructions, condEndEnv) = generateCode condition env
           (statmentInstructions, statemEndEnv) = generateScopeCode statements (updatePc condEndEnv 2)
 generateCode (IdentDeclaration changeMode (Ident name) imlType) env = generateIdentDeclarationCode name changeMode imlType env

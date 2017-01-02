@@ -76,7 +76,7 @@ type Address = Int
 
 data IdentInfo = Param IMLFlowMode IMLChangeMode
                | Var IMLType IMLChangeMode
-               | Function [IdentInfo]
+               | Function Scope Scope -- input Scope function Scope
 
 type Ident = (String, Address, IdentInfo)
 
@@ -92,11 +92,14 @@ addLocalIdent :: Enviroment -> Ident -> Enviroment
 -- TODO Check if Ident already exists => Throw error
 addLocalIdent (pc, sp, global, locals) ident = (pc, sp + 1, global, addToLocalScope locals ident)
 
+addLocalScope :: Scope -> Enviroment -> Enviroment 
+addLocalScope scope (pc, sp, global, locals) = (pc, sp, global, scope : locals)  
+
 addToLocalScope :: [Scope] -> Ident -> [Scope]
 addToLocalScope (next : rest) ident = (ident : next) : rest 
 
-addLocalScope :: Scope -> Enviroment -> Enviroment 
-addLocalScope scope (pc, sp, global, locals) = (pc, sp, global, scope : locals)  
+addToGlobalScope :: Enviroment -> Ident -> Enviroment
+addToGlobalScope (pc, sp, global, locals) ident = (pc, sp, ident : global, locals)
 
 removeLocalScope :: Enviroment -> Enviroment
 removeLocalScope (pc, sp, global, locals)  = (pc, sp, global, init locals)
@@ -144,7 +147,7 @@ generateOutputs ((name, _, Param InOut _) : rest) = output32 name : generateOutp
 generateOutputs (_ : rest) = generateOutputs rest
 
 generateInputs :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
-generateInputs instructions startEnv = foldl connectInput ([], addLocalScope [] startEnv) instructions
+generateInputs statements startEnv = foldl connectInput ([], addLocalScope [] startEnv) statements
 
 -- TODO better name
 connectInput :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
@@ -163,33 +166,39 @@ generateInputCode (ParamDeclaration _    _ (Ident name) _) = [ input32 name ]
 
 generateFunctions :: [IMLVal] -> Enviroment ->  ([Instruction], Enviroment)
 generateFunctions [] env = ([], env)
-{-generateFunctions statements startEnv = (instructions, newEnv)
+generateFunctions statements startEnv = (instructions, newEnv)
     where (instructions, newEnv) = foldl connectFunction ([], startEnv) statements
 
 connectFunction :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
-connectFunction (instructions, env) statement = (instructions ++ newInstructions, newEnv))
-    where (newInstructions, newEnv) = generateFunction statement env 
+connectFunction (instructions, env) statement = (instructions ++ newInstructions, newEnv)
+    where (newInstructions, functionEnv, inputScope) = generateFunction statement env
+          newIdent = Function inputScope ((head . getLocalScopes) functionEnv)
+          -- add the function to the global scope and remove the last local scope (which is from the function)
+          newEnv = removeLocalScope $ addToGlobalScope functionEnv newIdent 
 
-generateFunction :: IMLVal -> Enviroment -> ([Instruction], [IdentInfo])
-generateFunction (FunctionDeclaration name params statements) env@(pc, sp, global, locals) = (instructions, parameters)
+generateFunction :: IMLVal -> Enviroment -> ([Instruction], Enviroment, Scope)
+generateFunction (FunctionDeclaration name params statements) env@(pc, sp, global, locals) = (instructions, newEnv, (head . getLocalScopes) inputEndEnv)
     where (paramInstructions, inputEndEnv) = generateFunctionInputs (reverse params) sp
           (statementInstructions, functionEndEnv) = generateMultiCode inputEndEnv statements
           (returnInstruction, returnEndEnv) = (Return 0, updateCodeAddress functionEndEnv 1)
           instructions = paramInstructions ++ statementInstructions ++ returnInstruction
-          newEnv = returnEndEnd -- (pc + length instructions, sp + length parameters, global, locals)
-          
-generateFunctionInputs :: [IMLVal] -> Address -> ([Instruction], [IdentInfo])
-generateFunctionInputs instructions sp = foldl connectFunctionInput ([], (sp, []), []) instructions
+          newEnv = returnEndEnv
+    
+generateFunctionInputs :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateFunctionInputs statements startEnv = foldl connectFunctionInput ([], addLocalScope [] startEnv) statements
 
-connectFunctionInput :: ([Instruction], Scope, [IdentInfo]) -> IMLVal -> ([Instruction], Scope, [IdentInfo])
-connectFunctionInput (instructions, (sp, scope), info) val = (instructions ++ newInstructions, (sp + 1, newIdent : scope, newInfo : info))
-    where (newInstructions, newIdent, newInfo) = generateFunctionInput offset val sp
+connectFunctionInput :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
+connectFunctionInput (instructions, env) statement = (instructions ++ newInstructions, newEnv)
+    where (newInstructions, newEnv) = generateFunctionInput statement env
 
-generateFunctionInput :: IMLVal -> Address -> ([Instruction], Ident, IdentInfo)
-generateFunctionInput (ParamDeclaration flowMode changeMode (Ident name) _) sp = ([ loadIm32 0 ], (name, sp, identInfo), identInfo)
-    where identInfo = Param flowMode changeMode
+generateFunctionInput :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
+generateFunctionInput p@(ParamDeclaration flowMode changeMode (Ident name) _) env@(pc, sp, global, locals) = (newInstructions, newEnv)
+    where newInstructions = generateFunctionInputCode p
+          newIdent = (name, sp, Param flowMode changeMode)
+          newEnv = (pc + length newInstructions, sp + 1, global, addToLocalScope locals newIdent)
 
--}
+generateFunctionInputCode :: IMLVal -> [Instruction]
+generateFunctionInputCode (ParamDeclaration _ _ (Ident name) _) = [ loadIm32 0 ]
 
 -- HERE THE LOCAL ENVIROMENT GETS UPDATED
 generateScopeCode ::  [IMLVal] -> Enviroment -> ([Instruction], Enviroment)

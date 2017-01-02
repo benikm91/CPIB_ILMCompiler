@@ -12,6 +12,11 @@ prog negate (out o: int) {
        }
     }
 
+    // method not used
+    def myPen(in m: int, in n: int, out o: int) {
+        o := m + n;
+    }
+
     lala(0, 0, o);
     
 }

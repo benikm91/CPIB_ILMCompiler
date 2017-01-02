@@ -28,7 +28,7 @@ data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] -- Name [ParamDeclaratio
             | IdentDeclaration IMLChangeMode IMLVal IMLType -- changeMode Ident type
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType
             | IdentFactor IMLVal (Maybe IMLVal)
-            | IdentArray IMLVal Int -- name index
+            | IdentArray IMLVal Int -- name index  TODO also use Identifiers
             | DyadicOpr IMLOperation IMLVal IMLVal
             | MonadicOpr IMLOperation IMLVal
             | Literal IMLLiteral
@@ -59,7 +59,7 @@ printIml i t = printTabs i ++ printElement t
     where printElement (Program name params funcs states) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
           printElement (Ident name) = "(Ident "++ name ++")"
           printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
-          printElement (Assignment name expression) = "Assignment" ++ show name ++ " := " ++ show expression
+          printElement (Assignment name expression) = "Assignment " ++ show name ++ " := " ++ show expression
           printElement (FunctionDeclaration name params states) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
           printElement (FunctionCall name params) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
           printElement (If condition ifStates elseStates) = "If \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
@@ -197,7 +197,7 @@ parseFor = do
 parseAssignment :: Parser IMLVal
 parseAssignment = do
     spaces
-    identName <- parseIdent
+    identName <- parseIdentOrArrayIdent
     spaces
     string ":="
     spaces
@@ -205,6 +205,21 @@ parseAssignment = do
     spaces
     char ';'
     return $ Assignment identName expression
+
+parseIdentOrArrayIdent :: Parser IMLVal
+parseIdentOrArrayIdent = try parseArrayIdent <|> parseIdent
+
+parseArrayIdent :: Parser IMLVal
+parseArrayIdent = do 
+    spaces
+    ident <- parseIdent
+    spaces
+    string "["
+    spaces
+    index <- many1 digit
+    spaces
+    string "]"
+    return $ IdentArray ident (read index :: Int)
 
 parseIdentDeclaration :: Parser IMLVal
 parseIdentDeclaration = do 

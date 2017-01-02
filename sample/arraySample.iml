@@ -1,5 +1,7 @@
-prog arraySample (in m:int, inOut n: int, out o: int(0..10), out o2 : int) {
-    var a : int;
-    a := 20;
-    o := a;
+prog arraySample (in m:int, inOut n: int, out o: int, out o2 : int) {
+   var a : int[0 .. 10];
+   a[0] := 42;
+   a[10] := 5;
+   o := a[0];
+   o2 := a[10];
 }

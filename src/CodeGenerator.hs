@@ -241,21 +241,21 @@ connectCode (instructions, env) statement = (instructions ++ newInstructions, ne
     where (newInstructions, newEnv) = generateCode statement env
 
 generateCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
-generateCode (Ident name) env = ([loadAddrRel $ getIdentAddress env name, deref ], updatePcSp 2 1)
-generateCode (IdentArray (Ident name) i) env = ([loadAddress arrayAddres, deref ], updatePcSp 2 1)
+generateCode (Ident name) env = ([loadAddrRel $ getIdentAddress env name, deref ], updatePcSp env 2 1)
+generateCode (IdentArray (Ident name) i) env = ([loadAddress arrayAddres, deref ], updatePcSp env 2 1)
     where startAddress =  getIdentAddress env name
           ident@(_, add, identInfo) = getIdent env name
           imlType = extractImlType identInfo
           amax = extractArrayMax imlType
           amin = extractArrayMin imlType
           arrayAddres = getArrayAddress i amin amax startAddress
-generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updatePcSp 1 1)
+generateCode (Literal (IMLInt i)) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
 generateCode (MonadicOpr Parser.Minus expression) env = (expressionInstructions ++ [neg], updatePc newEnv 1)
     where (expressionInstructions, newEnv) = generateCode expression env
 generateCode (Assignment imlIdent@(Ident name) expression) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name) (generateCode expression env)
 generateCode (Assignment imlIdent@(IdentArray (Ident name) _) expression) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name) (generateCode expression env)
 generateCode (IdentFactor ident Nothing) env = generateCode ident env
-generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updatePcSp 1 -1)
+generateCode (DyadicOpr op a b) env = (expressionInstructions ++ [getDyadicOpr op], updatePcSp newEnv 1 (-1))
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 generateCode (If condition ifStatements elseStatements) env@(_, _, global, locals) = (conditionInstructions ++ [condJump (getPc ifEndEnv + 1)] ++ ifStatementInstructions ++ [uncondJump (getPc elseEndEnv + 1)] ++ elseStatementInstructions, elseEndEnv)
     where (conditionInstructions, condEndEnv) = generateCode condition env
@@ -282,7 +282,7 @@ handleNext (IdentFactor (Ident name) _, (_, _, Param _ InOut changeMode)) env@(_
 handleNext _ env = ([], updateSp env (-1))
 
 generateIdentDeclarationCode :: String -> IMLChangeMode -> IMLType -> Enviroment -> ([Instruction], Enviroment)
-generateIdentDeclarationCode name changeMode Int env = ([loadIm32 0], updatePcSp 1 1)
+generateIdentDeclarationCode name changeMode Int env = ([loadIm32 0], updatePcSp env 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var Int changeMode)
 generateIdentDeclarationCode name changeMode var@(ClampInt cmin cmax) env 
     | cmax <= cmin = error "Max of Clamp must be greater than min"

@@ -276,7 +276,15 @@ generateCode (While condition statements) env@(_, _, global, locals) =  (condIns
           (goBackInstructions, goBackEndEnv) = ([uncondJump (getPc env)], updatePc statementsEndEnv 1)
           newEnv = goBackEndEnv
 generateCode (IdentDeclaration changeMode (Ident name) imlType) env = generateIdentDeclarationCode name changeMode imlType env
+generateCode (For (IdentFactor (Ident name) Nothing) statements) env = generateForCode (getIdent env name) statements env
+generateCode (For _ _) env = error "For only accepts an clamp Int"
 generateCode s _ = error $ "not implemented" ++ show s
+
+generateForCode :: Ident -> [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
+generateForCode ident@(name, addr, (CodeGenerator.Var (ClampInt cmin cmax) _)) statements env = generateCode (While newCondition newStatements) env
+    where newCondition = (DyadicOpr Parser.Lt (IdentFactor (Ident name) Nothing) (Literal (IMLInt cmax)))
+          newStatements = statements ++ [(Assignment (Ident name) (DyadicOpr Parser.Plus (IdentFactor (Ident name) Nothing) (Literal (IMLInt 1))))]
+generateForCode _ _ _ = error "For only accepts an clamp Int" 
 
 generateStoreOutputsCode :: [(IMLVal, Ident)] -> Enviroment -> ([Instruction], Enviroment)
 generateStoreOutputsCode [] env = ([], env)

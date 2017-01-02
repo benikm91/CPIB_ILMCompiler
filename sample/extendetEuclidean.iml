@@ -1,0 +1,29 @@
+prog extendedEuclidean(in a:int, in b:int, out x0:int, out y0:int)
+{
+    var x1 :int; var y1 :int; var q  :int; var r  :int;
+    x0 := 1;
+    y0 := 0;
+    x1 := 0;
+    y1 := 1;
+    q  := a / b;
+    r  := a % b;
+
+    var oldX0 :int; var oldY0 :int;
+
+    while (b > 0) {
+        a := b;
+        b := r;
+        oldX0 := x0;
+        oldY0 := y0;
+        x0 := x1;
+        y0 := y1;
+        x1 := oldX0 - q * x1;
+        y1 := oldY0 - q * y1;
+        //Skip when b is Zero to permit divided by Zero
+        if(b /= 0)
+        {
+            q := a / b;
+            r := a % b;
+        }
+    }
+}

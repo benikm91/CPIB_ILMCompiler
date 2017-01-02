@@ -1,0 +1,26 @@
+prog fibbonachi (in n:int, out o:int)
+{
+    def fib(in n :int, out o :int) {
+        if(n = 0) 
+        {
+            o:= 0;
+        }
+        else 
+        {
+            if(n = 1) 
+            {
+                o:= 1;
+            }
+            else
+            {
+                var a :int;
+                var b :int;
+                fib(n - 1, a);
+                fib(n - 2, b);
+                o := a + b;
+            }
+        }
+    }
+
+    fib(n, o);
+}

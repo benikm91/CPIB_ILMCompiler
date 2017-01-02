@@ -30,17 +30,22 @@ fromRight _ = error "Not left"
 neg :: Instruction
 neg = Neg Int32VmTy mempty
 
-add32, sub32, mult32, divFloor32, eq32, ne32, gt32, ge32, lt32, le32 :: Instruction
-add32 = Add Int32VmTy mempty
-sub32 = Sub Int32VmTy mempty
-mult32 = Mult Int32VmTy mempty
-divFloor32 = DivFloor Int32VmTy mempty
+add32, sub32, mult32, divFloor32, modf :: SourcePos -> Instruction
+add32      pos = Add Int32VmTy $ rc2loc (toRc pos)
+sub32      pos = Sub Int32VmTy $ rc2loc(toRc pos)
+mult32     pos = Mult Int32VmTy $ rc2loc(toRc pos)
+divFloor32 pos = DivFloor Int32VmTy $ rc2loc(toRc pos)
+modf       pos = VirtualMachineIO.ModFloor Int32VmTy $ rc2loc(toRc pos)
+eq32, ne32, gt32, ge32, lt32, le32 :: Instruction
 eq32 = VirtualMachineIO.Eq Int32VmTy
 ne32 = VirtualMachineIO.Ne Int32VmTy
 gt32 = VirtualMachineIO.Gt Int32VmTy
 ge32 = VirtualMachineIO.Ge Int32VmTy
 lt32 = VirtualMachineIO.Lt Int32VmTy
 le32 = VirtualMachineIO.Le Int32VmTy
+
+toRc :: SourcePos -> RC
+toRc pos = (sourceLine pos, sourceColumn pos)
 
 loadAddress :: Int -> Instruction
 loadAddress addr = LoadIm IntVmTy (IntVmVal addr)
@@ -174,16 +179,16 @@ toHaskellVM (Program (Ident name _) params functions statements _) = (name, toAr
           (inputInstructions, inputEndEnv) = generateInputs params emptyEnv
           (functionInstructions, functionEndEnv) = generateFunctions functions (updatePc inputEndEnv 1)
           (callProgram, callProgramEndEnv) = ([ UncondJump $ getPc functionEndEnv ], functionEndEnv)
-          (statementInstructions, statementEndEnv) = generateScopeCode statements callProgramEndEnv   
+          (statementInstructions, statementEndEnv) = generateScopeCode statements callProgramEndEnv
           (outputInstructions, outputEndEnv) = generateOutputs statementEndEnv
-          (stopInstructions, _) = ([Stop], updatePc outputEndEnv 1) 
+          (stopInstructions, _) = ([Stop], updatePc outputEndEnv 1)
 toHaskellVM _ = error "Input is not a Program \n"
 
 generateOutputs :: Enviroment -> ([Instruction], Enviroment)
 generateOutputs env@(pc, sp, global, [] : []) = ([], env)
-generateOutputs env@(pc, sp, global, ((name, addr, Param _ Out   _) : rest) : []) = ([loadAddress addr, deref, output32 name] ++ restInstructions, finalEnv)
+generateOutputs env@(pc, sp, global, ((name, addr, Param _ Out   _) : rest) : []) = (restInstructions ++ [loadAddress addr, deref, output32 name], finalEnv)
     where (restInstructions, finalEnv) = generateOutputs (pc + 3, sp - 1, global, [rest])
-generateOutputs env@(pc, sp, global, ((name, addr, Param _ InOut _) : rest) : []) = ([loadAddress addr, deref, output32 name] ++ restInstructions, finalEnv)
+generateOutputs env@(pc, sp, global, ((name, addr, Param _ InOut _) : rest) : []) = (restInstructions ++ [loadAddress addr, deref, output32 name], finalEnv)
     where (restInstructions, finalEnv) = generateOutputs (pc + 3, sp - 1, global, [rest])
 generateOutputs env@(pc, sp, global, ((name, addr, Param _ _     _) : rest) : []) = generateOutputs (pc, sp - 1, global, [rest])
 
@@ -282,7 +287,7 @@ generateCode (Assignment imlIdent@(IdentArray (Ident name pos) _ _) expression _
 -- IdentFactor
 generateCode (IdentFactor ident Nothing _) env = generateCode ident env
 -- DyadicOpr
-generateCode (DyadicOpr op a b _) env = (expressionInstructions ++ [getDyadicOpr op], updatePcSp newEnv 1 (-1))
+generateCode (DyadicOpr op a b pos) env = (expressionInstructions ++ [getDyadicOpr op pos], updatePcSp newEnv 1 (-1))
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 -- If
 generateCode (If condition ifStatements elseStatements _) env@(_, _, global, locals) = (condInstructions ++ branchInstructions ++ ifStatementInstructions ++ jumpInstructions ++ elseStatementInstructions, newEnv)
@@ -387,20 +392,21 @@ generateClampAssignmentCode _ _ _ = error "Type is not a ClampInt"
 -- generateStatmensCode (val:rest) env intructions = generateStatmensCode rest newEnv (intructions ++ newInstructions)
 --     where (newInstructions, newEnv) = generateCode val env
 
-getDyadicOpr :: IMLOperation -> Instruction
-getDyadicOpr Parser.Plus = add32
-getDyadicOpr Parser.Minus = sub32
-getDyadicOpr Parser.Times = mult32
-getDyadicOpr Parser.Div = divFloor32
-getDyadicOpr Parser.Lt = lt32
-getDyadicOpr Parser.Ge = ge32
-getDyadicOpr Parser.Eq = eq32
-getDyadicOpr Parser.Ne = ne32
-getDyadicOpr Parser.Gt = gt32
-getDyadicOpr Parser.Le = le32
-getDyadicOpr Parser.And = error "TODO"
-getDyadicOpr Parser.Or = error "TODO"
-getDyadicOpr Parser.Not = error "TODO"
+getDyadicOpr :: IMLOperation -> SourcePos -> Instruction
+getDyadicOpr Parser.Plus  pos = add32 pos
+getDyadicOpr Parser.Minus pos = sub32 pos
+getDyadicOpr Parser.Times pos = mult32 pos
+getDyadicOpr Parser.Div   pos = divFloor32 pos
+getDyadicOpr Parser.Mod   pos = modf pos
+getDyadicOpr Parser.Lt    _   = lt32
+getDyadicOpr Parser.Ge    _   = ge32
+getDyadicOpr Parser.Eq    _   = eq32
+getDyadicOpr Parser.Ne    _   = ne32
+getDyadicOpr Parser.Gt    _   = gt32
+getDyadicOpr Parser.Le    _   = le32
+getDyadicOpr Parser.And   pos = error "TODO"
+getDyadicOpr Parser.Or    pos = error "TODO"
+getDyadicOpr Parser.Not   pos = error "TODO"
 
 extractArrayMin :: IMLType -> Int
 extractArrayMin (ArrayInt amin _) = amin

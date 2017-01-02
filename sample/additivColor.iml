@@ -1,0 +1,8 @@
+prog additivColor (in r1:int(0 .. 255), in g1:int(0 .. 255), in b1:int(0 .. 255),
+                   in r2:int(0 .. 255), in g2:int(0 .. 255), in b2:int(0 .. 255),
+                   out r:int(0 .. 255), out g:int(0 .. 255), out b:int(0 .. 255))
+{
+    r := r1 + r2;
+    g := g1 + g2;
+    b := b1 + b2;
+}

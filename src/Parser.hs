@@ -14,7 +14,7 @@ data IMLFlowMode = In | Out | InOut
 data IMLChangeMode = Const | Mutable
             deriving Show
 
-data IMLOperation = Times | Div
+data IMLOperation = Times | Div | Mod
             | Plus | Minus
             | Lt | Ge | Eq | Ne | Gt | Le
             | And | Or | Not
@@ -443,7 +443,7 @@ parseMulOpr :: Parser IMLOperation
 parseMulOpr = try parseTimes
 
 parseTimes :: Parser IMLOperation
-parseTimes = parseString "*" Times <|> parseString "/" Div
+parseTimes = parseString "*" Times <|> parseString "/" Div <|> parseString "%" Mod
 
 -- FACTOR
 

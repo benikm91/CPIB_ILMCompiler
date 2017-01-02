@@ -1,4 +1,4 @@
-prog forSample (out o:int) {
+prog forSample (out m : int(0..5), out o:int) {
    var i : int(0 .. 10);
    var a : int;
    i := 5;
@@ -7,4 +7,5 @@ prog forSample (out o:int) {
       a := a + 1;
    }
    o := a;
+   m := 10;
 }

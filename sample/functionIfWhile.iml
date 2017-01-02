@@ -1,18 +1,17 @@
 prog negate (out o: int) {
-    
-    var m : int;
-    
-    var t : int;
 
-    if (t = 0) { 
-        m := m;
+    def lala(in m: int, in n : int, out o: int) {
+       o := m;
+       while (m < 3) {
+           if (m = 2) {
+               o := o + 10;
+           } else {
+               o := o * 2;
+           }
+           m := m + 1;
+       }
     }
-    m := 5;
 
-    while (m < 3) {
-        m := m + 1;
-    }
-    o := m;
+    lala(0, 0, o);
     
 }
-

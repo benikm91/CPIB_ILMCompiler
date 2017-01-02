@@ -5,7 +5,7 @@ module VirtualMachineIO
   (VmType(..), VmValue(..), Instruction(..),
    CodeAddress, StoreAddress, Code, VMProgram, CodeArray,
    boolToInt,
-   execProgram, debugProgram)
+   execProgram, debugProgram, debugProgramStack)
 where
 
 import BaseDecls
@@ -469,12 +469,22 @@ execProgram (progId, code) = run (Right (0, 0, []))
       | otherwise = return (return progId)
     run (Left errMsg) = return (Left errMsg)
 
-debugProgram :: VMProgram -> IO (Check BaseIdent, Code)
+debugProgram :: VMProgram -> IO (Check BaseIdent, Code, Stack)
 debugProgram (progId, code) = run (Right (0, 0, [])) []
   where
-    run (Right state@(pc, _, _)) instrAccu
+    run (Right state@(pc, _, stack)) instrAccu
       | pc >= 0 = do let instr = code ! pc
                      checkState <- execInstr instr state
                      run checkState (instr : instrAccu)
-      | otherwise = return (return progId, reverse instrAccu)
-    run (Left errMsg) instrAccu = return (Left errMsg, reverse instrAccu)
+      | otherwise = return (return progId, reverse instrAccu, stack)
+    run (Left errMsg) instrAccu = return (Left errMsg, reverse instrAccu, [])
+
+debugProgramStack :: VMProgram -> IO (Check BaseIdent, Stack)
+debugProgramStack (progId, code) = run (Right (0, 0, [])) []
+  where
+    run (Right state@(pc, _, stack)) instrAccu
+      | pc >= 0 = do let instr = code ! pc
+                     checkState <- execInstr instr state
+                     run checkState (instr : instrAccu)
+      | otherwise = return (return progId, stack)
+    run (Left errMsg) instrAccu = return (Left errMsg, [])

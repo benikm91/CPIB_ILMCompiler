@@ -323,9 +323,9 @@ generateClampAssignmentCode loadAddInst (ClampInt cmin cmax) env = (checkMaxInst
           afterAssignmentPc = startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + storeOverMaxLenght + 1
           checkMaxInst = [Dup, loadIm32 $ toInteger cmax, le32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + 1)]
           checkMinInst = [Dup, loadIm32 $ toInteger cmin, ge32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght + 1)]
-          storeInRangeInst = [Store, uncondJump afterAssignmentPc]
-          storeOverMax = [Store, loadAddInst, loadIm32 $ toInteger cmax, store, uncondJump afterAssignmentPc]
-          storeUnderMin = [Store, loadAddInst, loadIm32 $ toInteger cmin, store]
+          storeInRangeInst = [store, uncondJump afterAssignmentPc]
+          storeOverMax = [store, loadAddInst, loadIm32 $ toInteger cmax, store, uncondJump afterAssignmentPc]
+          storeUnderMin = [store, loadAddInst, loadIm32 $ toInteger cmin, store]
 generateClampAssignmentCode _ _ _ = error "Type is not a ClampInt"
 
 -- generateCodeWithNewScope :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)

@@ -1,74 +1,17 @@
 prog negate (out o: int) {
-    
-    var m : int;
 
-    // def lala(in m: int, out o: iot) {
-    //    o := m;
-    //    while (m < 3) {
-    //        if (m = 2) {
-    //            o := o + 10;
-    //        } else {
-    //            o := o * 2;
-    //        }
-    //        m := m + 1;
-    //    }
-    //}
-
-    while (m < 3) {
-        if (m = 2) {
-            o := o + 10;
-        } else {
-            o := o * 2;
-        }
-        m := m + 1;
+    def lala(in m: int, in n : int, out o: int) {
+       o := m;
+       while (m < 3) {
+           if (m = 2) {
+               o := o + 10;
+           } else {
+               o := o * 2;
+           }
+           m := m + 1;
+       }
     }
-    var r : int;
-    o := r;
 
-    // lala(0, o);
+    lala(0, 0, o);
     
 }
-
-("negate",array (0,41) [
-(0,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 0}))),
-(1,UncondJump 2),
-(2,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 0}))),
-(3,LoadAddrRel 1),
-(4,Deref),
-(5,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 3}))),
-(6,Lt Int32VmTy),
-(7,CondJump 33),
-(8,LoadAddrRel 1),
-(9,Deref),
-(10,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 2}))),
-(11,Eq Int32VmTy),
-(12,CondJump 20),
-(13,LoadAddrRel 0),
-(14,LoadAddrRel 0),
-(15,Deref),
-(16,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 10}))),
-(17,Add Int32VmTy ---),
-(18,Store),
-(19,UncondJump 26),
-(20,LoadAddrRel 0),
-(21,LoadAddrRel 0),
-(22,Deref),
-(23,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 2}))),
-(24,Mult Int32VmTy ---),
-(25,Store),
-(26,LoadAddrRel 1),
-(27,LoadAddrRel 1),
-(28,Deref),
-(29,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 1}))),
-(30,Add Int32VmTy ---),
-(31,Store),
-(32,UncondJump 3),
-(33,LoadIm Int32VmTy (Int32VmVal (Int32 {val32 = 0}))),
-(34,LoadAddrRel 0),
-(35,LoadAddrRel 3),
-(36,Deref),
-(37,Store),
-(38,LoadIm IntVmTy (IntVmVal 0)),
-(39,Deref),
-(40,Output (IntTy 32) "o"),
-(41,Stop)])

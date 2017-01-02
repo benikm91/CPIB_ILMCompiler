@@ -92,15 +92,15 @@ data Instruction
 
 readS :: Stack -> StoreAddress -> VmValue
 readS stack addr 
-  | addr < 0 = error ("readS: Addr cannot be negative | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
-  | ((length stack - 1) - addr) < 0 = error ("readS: Stack cannot be less than 0 | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | addr < 0 = error ("read: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | ((length stack - 1) - addr) < 0 = error ("readS: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
   | otherwise = stack !! ((length stack - 1) - addr)
 
 
 updateS :: Stack -> (StoreAddress, VmValue) -> Stack
 updateS stack (addr, val) 
-  | addr < 0  = error ("Addr cannot be negative | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
-  | ((length stack - 1) - addr) < 0 = error ("updateS: Stack cannot be less than 0 | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | addr < 0  = error ("update: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | ((length stack - 1) - addr) < 0 = error ("update: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
   | otherwise = stack'
   where
     stack' = top ++ (val : bottom)
@@ -371,6 +371,8 @@ execInstr (Ge Int1024VmTy) (pc, fp, Int1024VmVal y : Int1024VmVal x : stack) =
 
 execInstr (Convert fromTy toTy loc) (pc, fp, vmVal : stack) =
   case (fromTy, vmVal, toTy) of
+    (Int32VmTy, Int32VmVal a, IntVmTy) ->
+      return2 (pc + 1, fp, IntVmVal (fromInt32toInt a) : stack)
     (Int32VmTy, Int32VmVal a, Int64VmTy) ->
       return2 (pc + 1, fp, Int64VmVal (fromInt32toInt64 a) : stack)
     (Int32VmTy, Int32VmVal a, Int1024VmTy) ->

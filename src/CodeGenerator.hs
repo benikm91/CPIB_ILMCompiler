@@ -27,8 +27,8 @@ fromRight _ = error "Not left"
 
 -- Instructions
 
-neg :: Instruction
-neg = Neg Int32VmTy mempty
+neg :: SourcePos -> Instruction
+neg pos = Neg Int32VmTy $ rc2loc $ toRc pos
 
 add32, sub32, mult32, divFloor32, modf :: SourcePos -> Instruction
 add32      pos = Add Int32VmTy $ rc2loc (toRc pos)
@@ -56,8 +56,8 @@ loadAddrRel = LoadAddrRel
 loadIm32 :: Integer -> Instruction
 loadIm32 val = LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 val))
 
-input32 :: String -> Instruction
-input32 name = Input (IntTy 32) mempty name
+input32 :: String -> SourcePos -> Instruction
+input32 name pos = Input (IntTy 32) (rc2loc $ toRc pos) name
 
 output32 :: String -> Instruction
 output32 name = Output (IntTy 32) name
@@ -210,17 +210,17 @@ generateInputCode :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
 -- Int
 generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name pos) Int _) env = ([instruction], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param Int imlFlowMode changeMode) pos
-          instruction = getLoadInputInstruction imlFlowMode 0 name
+          instruction = getLoadInputInstruction imlFlowMode 0 name pos
 -- ClampInt
 generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name identPos) var@(ClampInt cmin cmax) pos) env
     | cmax <= cmin = error ("Max of Clamp must be greater than min" ++ printLine pos ++ "\n")
     | otherwise = ([instruction], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param var imlFlowMode changeMode) identPos
-          instruction = getLoadInputInstruction imlFlowMode cmin name
+          instruction = getLoadInputInstruction imlFlowMode cmin name pos
 
-getLoadInputInstruction :: IMLFlowMode -> Int -> String -> Instruction
-getLoadInputInstruction Out i _ = loadIm32 $ toInteger i
-getLoadInputInstruction _   _ name = input32 name
+getLoadInputInstruction :: IMLFlowMode -> Int -> String -> SourcePos -> Instruction
+getLoadInputInstruction Out i _    _   = loadIm32 $ toInteger i
+getLoadInputInstruction _   _ name pos = input32 name pos
 
 generateFunctions :: [IMLVal] -> Enviroment ->  ([Instruction], Enviroment)
 generateFunctions [] env = ([], env)
@@ -279,7 +279,7 @@ generateCode (IdentArray (Ident name identPos) indexExpr identArrPos) env = (loa
           --arrayAddres = getArrayAddress index amin amax startAddress
 generateCode (Literal (IMLInt i) _) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
 -- MonadicOpr
-generateCode (MonadicOpr Parser.Minus expression _) env = (expressionInstructions ++ [neg], updatePc newEnv 1)
+generateCode (MonadicOpr Parser.Minus expression pos) env = (expressionInstructions ++ [neg pos], updatePc newEnv 1)
     where (expressionInstructions, newEnv) = generateCode expression env
 -- Assignments
 generateCode (Assignment imlIdent@(Ident name pos)                  expression _) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name pos) (generateCode expression env)
@@ -404,9 +404,6 @@ getDyadicOpr Parser.Eq    _   = eq32
 getDyadicOpr Parser.Ne    _   = ne32
 getDyadicOpr Parser.Gt    _   = gt32
 getDyadicOpr Parser.Le    _   = le32
-getDyadicOpr Parser.And   pos = error "TODO"
-getDyadicOpr Parser.Or    pos = error "TODO"
-getDyadicOpr Parser.Not   pos = error "TODO"
 
 extractArrayMin :: IMLType -> Int
 extractArrayMin (ArrayInt amin _) = amin
@@ -415,14 +412,10 @@ extractArrayMax :: IMLType -> Int
 extractArrayMax (ArrayInt _ amax) = amax
 
 loadArrayAddress :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
-loadArrayAddress (IdentArray (Ident name pos) indexExpr _) env = (indexStatments ++ [loadIm32 $ toInteger startAddress, Add Int32VmTy mempty, loadIm32 $ toInteger  amin, Sub Int32VmTy mempty, Convert Int32VmTy IntVmTy mempty], updatePcSp newEnv 5 1)
+loadArrayAddress (IdentArray (Ident name pos) indexExpr arrayPos) env = (indexStatments ++ [loadIm32 $ toInteger startAddress, Add Int32VmTy $ rc2loc $ toRc arrayPos, loadIm32 $ toInteger  amin, Sub Int32VmTy $ rc2loc $ toRc arrayPos, Convert Int32VmTy IntVmTy $ rc2loc $ toRc arrayPos], updatePcSp newEnv 5 1)
     where startAddress = getIdentAddress env name pos
           ident@(_, add, identInfo) = getIdent env name pos
           imlType = extractImlType identInfo
           amax = extractArrayMax imlType
           amin = extractArrayMin imlType
           (indexStatments, newEnv) = generateCode indexExpr env
-
-program :: (Array Int Instruction)
--- program = array (0, 4) [(0, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 5))), (1, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 4))), (2, Add Int32VmTy mempty), (3, Output (IntTy (32 :: Int)) "HALLO"), (4, Stop)]
-program = array (0, 4) [(0, Input (IntTy 32) (rc2loc (1,1)) "Test"), (1, LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 5))), (2, Add Int32VmTy mempty), (3, Output (IntTy (32 :: Int)) "HALLO"), (4, Stop)]

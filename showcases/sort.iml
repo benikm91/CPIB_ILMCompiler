@@ -1,4 +1,4 @@
-prog insertSort(inOut a : int[0..5]) {
+prog selectionSort(inOut a : int[0..5]) {
 
     var toSortIndex : int (0..6);
 

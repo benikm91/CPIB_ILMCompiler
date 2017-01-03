@@ -19,7 +19,7 @@ prog threeNpOne (in i: int, in j: int, out cycles: int) {
 
     var curr: int;
 
-    while (i <= j) {
+    while (i <= j) { 
         calcCycles(i, curr);
         if (curr > cycles) {
             cycles := curr;

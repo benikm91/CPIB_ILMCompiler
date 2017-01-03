@@ -250,16 +250,16 @@ generateFunctions statements startEnv = (instructions, newEnv)
     where (instructions, newEnv) = foldl connectFunction ([], startEnv) statements
 
 connectFunction :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
-connectFunction (instructions, env@(pc, _, _, _)) statement@(FunctionDeclaration (Ident name _) _ _ _) = (instructions ++ newInstructions, newEnv)
-    where (newInstructions, functionEnv, inputScope) = generateFunction statement env
-          newIdent = (name, pc, Function inputScope)
-          -- add the function to the global scope and remove the last local scope (which is from the function)
-          newEnv = addToGlobalScope functionEnv newIdent 
+connectFunction (instructions, env) statement = (instructions ++ newInstructions, newEnv)
+    where (newInstructions, newEnv) = generateFunction statement env
 
-generateFunction :: IMLVal -> Enviroment -> ([Instruction], Enviroment, Scope)
-generateFunction (FunctionDeclaration name params statements _) env = (instructions, removeLocalScope newEnv, (head . getLocalScopes) inputEndEnv)
+generateFunction :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
+generateFunction (FunctionDeclaration (Ident name _) params statements _) env = (instructions, removeLocalScope newEnv)
     where (paramInstructions, inputEndEnv) = generateFunctionInputs (reverse params) (addLocalScope [] env)
-          (statementInstructions, functionEndEnv) = generateMultiCode statements inputEndEnv 
+          -- add the function to the global scope so the function already knows itself (for recursion)
+          inputScope = (head . getLocalScopes) inputEndEnv
+          newIdent = (name, getPc env, Function inputScope)
+          (statementInstructions, functionEndEnv) = generateMultiCode statements $ addToGlobalScope inputEndEnv newIdent 
           (returnInstruction, returnEndEnv) = ([ Return 0 ], updatePc functionEndEnv 1)
           instructions = paramInstructions ++ statementInstructions ++ returnInstruction
           newEnv = returnEndEnv
@@ -326,10 +326,12 @@ generateCode (If condition ifStatements elseStatements _) env@(_, _, global, loc
           (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements jumpEndEnv
           newEnv = elseEndEnv
 -- Function call
-generateCode (FunctionCall (Ident name pos) params _) env = (prepParams ++ callInstructions ++ storeOutputs, storeOutputsEndEnv)
+generateCode (FunctionCall (Ident name pos) params _) env = (prepParams ++ callInstructions ++ storeOutputs ++ moveSpInVM, newEnv)
     where (prepParams, prepParamsEndEnv) = generateMultiCode params env
           (callInstructions, callEndEnv) = ([ call $ getIdentAddress env name pos], updatePc prepParamsEndEnv 1)
           (storeOutputs, storeOutputsEndEnv) = generateStoreOutputsCode (reverse (zip (params) (getParams $ getIdentInfo env name pos))) callEndEnv
+          (moveSpInVM, moveSpInVMEndEnv) = ([MoveSpUp (length params)], updatePc storeOutputsEndEnv 1)
+          newEnv = moveSpInVMEndEnv
 -- While
 generateCode (While condition statements _) env@(_, _, global, locals) =  (condInstructions ++ leaveInstructions ++ statmentInstructions ++ goBackInstructions, newEnv)
     where (condInstructions, condEndEnv) = generateCode condition env

@@ -88,6 +88,7 @@ data Instruction
   | CondJump CodeAddress
   | Input Type Location String
   | Output Type String
+  | MoveSpUp Int
   deriving (Show)
 
 readS :: Stack -> StoreAddress -> VmValue
@@ -111,6 +112,8 @@ return2 = return . return
 
 
 execInstr :: Instruction -> State -> IO (Check State)
+execInstr (MoveSpUp size) (pc, fp, stack) =
+  return2 (pc + 1, fp, drop size stack)
 execInstr Dup (pc, fp, val : stack) =
   return2 (pc + 1, fp, val : val : stack)
 execInstr (AllocBlock size) (pc, fp, stack) =

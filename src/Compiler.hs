@@ -13,13 +13,16 @@ readAndCompile = do
     -- "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"
     -- "E:/Users/Christian/Documents/FHNW/Semester5/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     -- "D:/OneDrive/Dokumente/FHNW-MightyTower/cpib/CPIB_ILMCompiler/sample/sample1.iml"
-    putStrLn $ "compiling " ++ program
+    putStrLn "=============== Input Program ==============="
+    putStrLn $ program
     putStrLn "=============== Abstract Syntax Tree ==============="
     putStrLn $ printTree (readExpr program)
-    putStrLn "===================================================="
+    putStrLn "=============== Compiled Program ==============="
     putStrLn $ show (compile program)
+    putStrLn "=============== Run Program ==============="
     t <- (debugProgramStack . compile) program
     print t
+    putStrLn "===================================================="
     --putStrLn $ compile program
 
 --compile = do y

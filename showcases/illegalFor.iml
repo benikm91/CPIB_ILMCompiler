@@ -1,0 +1,6 @@
+prog illegalFor(out i : int) {
+    var a: int[0..10];
+    for (a) {
+        i := 10;
+    }
+}

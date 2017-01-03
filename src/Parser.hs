@@ -6,44 +6,43 @@ import System.Environment
 import Data.List
 import GHC.Int (Int32)
 
-data IMLType = Int | ClampInt Int Int | ArrayInt Int Int -- from to
-            deriving Show
+data IMLType = Int 
+    | ClampInt Int Int -- min max
+    | ArrayInt Int Int -- min max
+    deriving Show
 
 data IMLFlowMode = In | Out | InOut
-            deriving Show
+    deriving Show
 
 data IMLChangeMode = Const | Mutable
-            deriving Show
+    deriving Show
 
-data IMLOperation = Times | Div | Mod
-            | Plus | Minus
-            | Lt | Ge | Eq | Ne | Gt | Le
-            | And | Or | Not
-            deriving Show
+data IMLOperation = Times | Div | Mod | Plus | Minus | Lt | Ge | Eq | Ne | Gt | Le | And | Or | Not
+    deriving Show
 
 data IMLLiteral = IMLBool Bool | IMLInt Int
-            deriving Show
+    deriving Show
 
-data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] SourcePos -- Name [ParamDeclarations] [FunctionDeclarations] [Statements]
-            | Ident String SourcePos -- name
-            | IdentDeclaration IMLChangeMode IMLVal IMLType SourcePos -- changeMode Ident type
-            | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType SourcePos
-            | IdentFactor IMLVal (Maybe IMLVal) SourcePos -- name _
-            | IdentArray IMLVal IMLVal SourcePos -- name indexExpression
-            | DyadicOpr IMLOperation IMLVal IMLVal SourcePos -- opreration expression expression
-            | MonadicOpr IMLOperation IMLVal SourcePos -- opperation expression
-            | Literal IMLLiteral SourcePos -- literal
-            | Init
-            | ExprList [IMLVal] SourcePos -- [expression]
-            | Message String
-            | FunctionDeclaration IMLVal [IMLVal] [IMLVal] SourcePos -- Name [Parameters] [Statements]
-            | FunctionCall IMLVal [IMLVal] SourcePos -- Name [Parameters]
-            | If IMLVal [IMLVal] [IMLVal] SourcePos -- Condition [If Statements] [Else Statement]
-            | While IMLVal [IMLVal] SourcePos -- Condition [Statements]
-            | For IMLVal [IMLVal] SourcePos -- Condition [Statements]
-            | Assignment IMLVal IMLVal SourcePos-- Name Expression
-            deriving Show
-            
+data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] SourcePos -- name [paramDeclarations] [functionDeclarations] [statements]
+    | Ident String SourcePos -- name
+    | IdentDeclaration IMLChangeMode IMLVal IMLType SourcePos -- changeMode Ident type
+    | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType SourcePos
+    | IdentFactor IMLVal (Maybe IMLVal) SourcePos -- name _
+    | IdentArray IMLVal IMLVal SourcePos -- name indexExpression
+    | DyadicOpr IMLOperation IMLVal IMLVal SourcePos -- opreration expression expression
+    | MonadicOpr IMLOperation IMLVal SourcePos -- opperation expression
+    | Literal IMLLiteral SourcePos -- literal
+    | Init -- not used
+    | ExprList [IMLVal] SourcePos -- [expression]
+    | Message String -- for printing error message
+    | FunctionDeclaration IMLVal [IMLVal] [IMLVal] SourcePos -- name [parameters] [statements]
+    | FunctionCall IMLVal [IMLVal] SourcePos -- name [parameters]
+    | If IMLVal [IMLVal] [IMLVal] SourcePos -- condition [if Statements] [else Statement]
+    | While IMLVal [IMLVal] SourcePos -- condition [statements]
+    | For IMLVal [IMLVal] SourcePos -- condition [statements]
+    | Assignment IMLVal IMLVal SourcePos-- name expression
+    deriving Show
+
 -- PRINT
 
 printList :: Int -> [IMLVal] -> String

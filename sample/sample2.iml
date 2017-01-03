@@ -1,17 +1,6 @@
-prog negate (in m:int, inOut n: int, out o: int) {
-    var i : int;
-    i := 0;
-    while (i < 10) {
-        if (o > 50)
-        {
-            o := 50;
-        }
-        else
-        {
-            o := 99;
-        }
-        i := i + 1;
+prog euklid(out o: int) {
+    o := 5;
+    while(o > 0) {
+        o := o - 1;
     }
-    i := 10;
-    o := 20;
 }

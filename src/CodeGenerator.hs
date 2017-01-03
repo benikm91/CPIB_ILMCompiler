@@ -213,7 +213,7 @@ generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name pos) 
           instruction = getLoadInputInstruction imlFlowMode 0 name
 -- ClampInt
 generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name identPos) var@(ClampInt cmin cmax) pos) env
-    | cmax <= cmin = error ("Max of Clamp must be greater than min" ++ printLine pos ++ "\n")
+    | cmax <= cmin = error ("Max of Clamp must be greater than min" ++ printLine pos ++ " | " ++ show var ++ "\n")
     | otherwise = ([instruction], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param var imlFlowMode changeMode) identPos
           instruction = getLoadInputInstruction imlFlowMode cmin name

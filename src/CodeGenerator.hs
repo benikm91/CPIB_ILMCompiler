@@ -250,16 +250,16 @@ generateFunctions statements startEnv = (instructions, newEnv)
     where (instructions, newEnv) = foldl connectFunction ([], startEnv) statements
 
 connectFunction :: ([Instruction], Enviroment) -> IMLVal -> ([Instruction], Enviroment)
-connectFunction (instructions, env@(pc, _, _, _)) statement@(FunctionDeclaration (Ident name _) _ _ _) = (instructions ++ newInstructions, newEnv)
-    where (newInstructions, functionEnv, inputScope) = generateFunction statement env
-          newIdent = (name, pc, Function inputScope)
-          -- add the function to the global scope and remove the last local scope (which is from the function)
-          newEnv = addToGlobalScope functionEnv newIdent 
+connectFunction (instructions, env) statement = (instructions ++ newInstructions, newEnv)
+    where (newInstructions, newEnv) = generateFunction statement env
 
-generateFunction :: IMLVal -> Enviroment -> ([Instruction], Enviroment, Scope)
-generateFunction (FunctionDeclaration name params statements _) env = (instructions, removeLocalScope newEnv, (head . getLocalScopes) inputEndEnv)
+generateFunction :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
+generateFunction (FunctionDeclaration (Ident name _) params statements _) env = (instructions, removeLocalScope newEnv)
     where (paramInstructions, inputEndEnv) = generateFunctionInputs (reverse params) (addLocalScope [] env)
-          (statementInstructions, functionEndEnv) = generateMultiCode statements inputEndEnv 
+          -- add the function to the global scope so the function already knows itself (for recursion)
+          inputScope = (head . getLocalScopes) inputEndEnv
+          newIdent = (name, getPc env, Function inputScope)
+          (statementInstructions, functionEndEnv) = generateMultiCode statements $ addToGlobalScope inputEndEnv newIdent 
           (returnInstruction, returnEndEnv) = ([ Return 0 ], updatePc functionEndEnv 1)
           instructions = paramInstructions ++ statementInstructions ++ returnInstruction
           newEnv = returnEndEnv
@@ -298,10 +298,12 @@ generateCode (Ident name pos) env = ([loadAddrRel $ getIdentAddress env name pos
 -- array deref TODO: set correct location
 generateCode (IdentArray (Ident name identPos) indexExpr identArrPos) env = (loadAddressInstr ++ [deref], updatePc loadAddressEnv 1)
     where (loadAddressInstr, loadAddressEnv) = loadArrayAddress (IdentArray (Ident name identPos) indexExpr identArrPos) env
-          --arrayAddres = getArrayAddress index amin amax startAddress
 generateCode (Literal (IMLInt i) _) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
 -- MonadicOpr
+generateCode (MonadicOpr Parser.Plus expression _) env = generateCode expression env
 generateCode (MonadicOpr Parser.Minus expression pos) env = (expressionInstructions ++ [neg pos], updatePc newEnv 1)
+    where (expressionInstructions, newEnv) = generateCode expression env 
+generateCode (MonadicOpr Parser.Not expression pos) env = (expressionInstructions ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos), loadIm32 1, add32 pos, loadIm32 2, ModFloor Int32VmTy $ rc2loc (toRc pos), Convert Int32VmTy IntVmTy $ rc2loc (toRc pos)], updatePc newEnv 6)
     where (expressionInstructions, newEnv) = generateCode expression env
 -- Assignments
 generateCode (Assignment imlIdent@(Ident name pos)                  expression _) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name pos) (generateCode expression env)
@@ -309,6 +311,10 @@ generateCode (Assignment imlIdent@(IdentArray (Ident name pos) _ _) expression _
 -- IdentFactor
 generateCode (IdentFactor ident Nothing _) env = generateCode ident env
 -- DyadicOpr
+generateCode (DyadicOpr Parser.And a b pos) env = (expressionInstructions ++ [mult32 pos, loadIm32 0, gt32], updatePcSp newEnv 5 (-1))
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)] ++ fst (generateCode b env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)], snd $ generateCode b (snd $ generateCode a env))
+generateCode (DyadicOpr Parser.Or a b pos) env = (expressionInstructions ++ [add32 pos, loadIm32 0, gt32], updatePcSp newEnv 5 (-1))
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)] ++ fst (generateCode b env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)], snd $ generateCode b (snd $ generateCode a env))
 generateCode (DyadicOpr op a b pos) env = (expressionInstructions ++ [getDyadicOpr op pos], updatePcSp newEnv 1 (-1))
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 -- If
@@ -320,10 +326,12 @@ generateCode (If condition ifStatements elseStatements _) env@(_, _, global, loc
           (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements jumpEndEnv
           newEnv = elseEndEnv
 -- Function call
-generateCode (FunctionCall (Ident name pos) params _) env = (prepParams ++ callInstructions ++ storeOutputs, storeOutputsEndEnv)
+generateCode (FunctionCall (Ident name pos) params _) env = (prepParams ++ callInstructions ++ storeOutputs ++ moveSpInVM, newEnv)
     where (prepParams, prepParamsEndEnv) = generateMultiCode params env
           (callInstructions, callEndEnv) = ([ call $ getIdentAddress env name pos], updatePc prepParamsEndEnv 1)
           (storeOutputs, storeOutputsEndEnv) = generateStoreOutputsCode (reverse (zip (params) (getParams $ getIdentInfo env name pos))) callEndEnv
+          (moveSpInVM, moveSpInVMEndEnv) = ([MoveSpUp (length params)], updatePc storeOutputsEndEnv 1)
+          newEnv = moveSpInVMEndEnv
 -- While
 generateCode (While condition statements _) env@(_, _, global, locals) =  (condInstructions ++ leaveInstructions ++ statmentInstructions ++ goBackInstructions, newEnv)
     where (condInstructions, condEndEnv) = generateCode condition env
@@ -383,11 +391,15 @@ generateAssignmentCode (Ident name pos) (CodeGenerator.Var var@(ClampInt _ _) _)
 generateAssignmentCode (Ident name pos) (Param var@(ClampInt _ _) _ _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePcSp clampEnv 1 (-1))
     where loadInst = loadAddress $ getIdentAddress exprEnv name pos
           (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
--- array assignment
+-- array assignment (var)
 generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
+    where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
+-- array assignment (param)
+generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Param var@(ArrayInt amin amax) _ _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
     where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
 -- normal
 generateAssignmentCode (Ident name pos) _ (exprInst, exprEnv)= ([loadAddrRel $ getIdentAddress exprEnv name pos] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))
+generateAssignmentCode t d e = error $ "Could not match . IMLVal: " ++ show t ++ " | identInfo: " ++ show d
 
 -- preconditon address is already loaded in the stack
 generateClampAssignmentCode :: Instruction -> IMLType -> Enviroment -> ([Instruction], Enviroment)

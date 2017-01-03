@@ -1,0 +1,26 @@
+prog selectionSort(inOut a : int[0..5]) {
+
+    var toSortIndex : int (0..6);
+
+    var minIndex: int;
+    var arrayIndex : int (0..6);
+    var temp : int;
+
+    for (toSortIndex) {
+
+        minIndex := toSortIndex;
+        arrayIndex := toSortIndex + 1;
+
+        for (arrayIndex) {
+            if (a[minIndex] > a[arrayIndex]) {
+                minIndex := arrayIndex;
+            }
+        }
+
+        temp := a[minIndex];
+        a[minIndex] := a[toSortIndex];
+        a[toSortIndex] := temp;
+
+    }
+
+}

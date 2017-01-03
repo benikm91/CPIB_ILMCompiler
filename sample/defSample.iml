@@ -1,0 +1,16 @@
+prog defSample (out o: int) {
+    def divide (in m: int, in n: int, out q: int) {
+        var r: int;
+        q := 0;
+        r := m;
+        while (r >= n) {
+            q := q + 1;
+            r := r - n;
+        }
+    }
+
+    var t :int;
+    divide(6, 2, t);
+
+    o := t;
+}

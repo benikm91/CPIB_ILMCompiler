@@ -383,11 +383,15 @@ generateAssignmentCode (Ident name pos) (CodeGenerator.Var var@(ClampInt _ _) _)
 generateAssignmentCode (Ident name pos) (Param var@(ClampInt _ _) _ _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePcSp clampEnv 1 (-1))
     where loadInst = loadAddress $ getIdentAddress exprEnv name pos
           (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
--- array assignment
+-- array assignment (var)
 generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
+    where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
+-- array assignment (param)
+generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Param var@(ArrayInt amin amax) _ _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
     where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
 -- normal
 generateAssignmentCode (Ident name pos) _ (exprInst, exprEnv)= ([loadAddrRel $ getIdentAddress exprEnv name pos] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))
+generateAssignmentCode t d e = error $ "Could not match . IMLVal: " ++ show t ++ " | identInfo: " ++ show d
 
 -- preconditon address is already loaded in the stack
 generateClampAssignmentCode :: Instruction -> IMLType -> Enviroment -> ([Instruction], Enviroment)

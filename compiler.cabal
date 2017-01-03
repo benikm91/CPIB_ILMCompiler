@@ -16,7 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src, src/lederer/VM
   exposed-modules:     Compiler, VMSample
-  other-modules:       Path, VirtualMachineIO, BaseDecls, CheckedArithmetic, ErrorHandlingGeneric, Locations, CodeGenerator, Parser
+  other-modules:       Path, VirtualMachineIO, BaseDecls, CheckedArithmetic, ErrorHandlingGeneric, Locations, CodeGenerator, Parser, TypeChecker
   build-depends:       base >= 4.7 && < 5, split, parsec, array
   default-language:    Haskell2010
 

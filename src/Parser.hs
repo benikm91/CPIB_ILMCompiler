@@ -422,11 +422,11 @@ parseRelOpr = try parseEq
 
 parseEq, parseNe, parseLt, parseGt, parseLe, parseGe :: Parser IMLOperation
 parseEq = parseString "=" Eq
-parseNe = parseString "/=" Ne
+parseNe = parseString "/=" Ne <|> parseString "≠" Ne 
 parseLt = parseString "<" Lt
 parseGt = parseString ">" Gt
-parseLe = parseString "<=" Le
-parseGe = parseString ">=" Ge
+parseLe = parseString "<=" Le <|> parseString "≤" Le 
+parseGe = parseString ">=" Ge <|> parseString "≥" Ge 
 
 -- ADDEXPR
 
@@ -557,3 +557,4 @@ parseString :: String -> a -> Parser a
 parseString s r = do
     string s
     return r
+

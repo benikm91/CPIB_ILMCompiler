@@ -1,7 +1,7 @@
 prog arraySample (out o: int, out o2 : int) {
-   var a : int[0 .. 10];
-   a[0] := 42;
-   a[10] := 5;
-   o := a[0];
-   o2 := a[0] + a[10];
+   var a : int[-1 .. 4];
+   a[-1] := 42;
+   a[4] := 5;
+   o := a[-1];
+   o2 := a[-1] + a[4];
 }

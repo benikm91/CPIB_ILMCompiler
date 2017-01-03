@@ -4,6 +4,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import Text.Parsec.Token hiding (braces, brackets)
 import System.Environment
 import Data.List
+import GHC.Int (Int32)
 
 data IMLType = Int | ClampInt Int Int | ArrayInt Int Int -- from to
             deriving Show
@@ -278,9 +279,9 @@ parseFlowMode =
 
 parseChangeMode :: Parser IMLChangeMode
 parseChangeMode = 
-    try parseVal
-    <|> parseVar
-    <|> option Mutable parseConst
+        try parseVal
+    <|> try parseVar
+    <|> (option Mutable (try parseConst))
 
 parseVal, parseVar, parseConst :: Parser IMLChangeMode
 parseVal = parseString "val" Const
@@ -308,13 +309,19 @@ praseIntClamp = do
         string "int"
         spaces
         string "("
-        a <- many1 digit
+        spaces
+        oprA <- option id (parseChar '-' negate)
+        spaces
+        a <- optionMaybe (many1 digit)
         spaces
         string ".."
         spaces
-        b <- many1 digit
+        oprB <- option id (parseChar '-' negate)
+        spaces
+        b <- optionMaybe (many1 digit)
+        spaces
         string ")"
-        return $ ClampInt (read a :: Int) (read b :: Int)
+        return $ ClampInt (oprA (maybe (fromIntegral (minBound :: Int32) :: Int) (\x -> read x :: Int) a)) (oprB (maybe (fromIntegral (maxBound :: Int32) :: Int) (\x -> read x :: Int) b))
 
 praseIntArray :: Parser IMLType
 praseIntArray = do 
@@ -322,13 +329,19 @@ praseIntArray = do
         string "int"
         spaces
         string "["
+        spaces
+        oprA <- option id (parseChar '-' negate)
+        spaces
         a <- many1 digit
         spaces
         string ".."
         spaces
+        oprB <- option id (parseChar '-' negate)
+        spaces
         b <- many1 digit
+        spaces
         string "]"
-        return $ ArrayInt (read a :: Int) (read b :: Int)
+        return $ ArrayInt (oprA (read a :: Int)) (oprB (read b :: Int))
 
 parseIdent :: Parser IMLVal
 parseIdent = do

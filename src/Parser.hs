@@ -61,7 +61,7 @@ printIml i t = printTabs i ++ printElement t
           printElement (Ident name _) = "(Ident "++ name ++")"
           printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType _) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
           printElement (Assignment name expression _) = "Assignment " ++ printElement name ++ " := " ++ printElement expression
-          printElement (FunctionDeclaration name params states _) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
+          printElement (FunctionDeclaration name params states _) = "FunctionDeclaration " ++ printElement name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
           printElement (FunctionCall name params _) = "FunctionCall " ++ printElement name ++ "\n" ++ printList i params
           printElement (If condition ifStates elseStates _) = "If \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
           printElement (While condition states _) = "While \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
@@ -69,9 +69,7 @@ printIml i t = printTabs i ++ printElement t
           printElement (IdentFactor name _ _) = "IdentFactor " ++ printIml 0 name;
           printElement (Literal literal _) = "Literal " ++ show literal
           printElement (IdentDeclaration changeMode name imlType _) = "IdentDeclaration " ++ show changeMode ++ " " ++ printIml 0 name ++ " " ++ show imlType
-          printElement (IdentFactor name _ _) = "IdentFactor " ++ printIml 0 name
           printElement (IdentArray name indexExpression _) = "IdentArray " ++ printElement name ++ printIml 0 indexExpression
-          printElement (IdentDeclaration imlChangeMode name imlType _) = "IdentDeclaration " ++ show imlChangeMode ++ " " ++ printElement name ++ " " ++ show imlType
           printElement t = show t
 
 -- END PRINT

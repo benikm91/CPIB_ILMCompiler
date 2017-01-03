@@ -298,10 +298,12 @@ generateCode (Ident name pos) env = ([loadAddrRel $ getIdentAddress env name pos
 -- array deref TODO: set correct location
 generateCode (IdentArray (Ident name identPos) indexExpr identArrPos) env = (loadAddressInstr ++ [deref], updatePc loadAddressEnv 1)
     where (loadAddressInstr, loadAddressEnv) = loadArrayAddress (IdentArray (Ident name identPos) indexExpr identArrPos) env
-          --arrayAddres = getArrayAddress index amin amax startAddress
 generateCode (Literal (IMLInt i) _) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
 -- MonadicOpr
+generateCode (MonadicOpr Parser.Plus expression _) env = generateCode expression env
 generateCode (MonadicOpr Parser.Minus expression pos) env = (expressionInstructions ++ [neg pos], updatePc newEnv 1)
+    where (expressionInstructions, newEnv) = generateCode expression env 
+generateCode (MonadicOpr Parser.Not expression pos) env = (expressionInstructions ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos), loadIm32 1, add32 pos, loadIm32 2, ModFloor Int32VmTy $ rc2loc (toRc pos), Convert Int32VmTy IntVmTy $ rc2loc (toRc pos)], updatePc newEnv 6)
     where (expressionInstructions, newEnv) = generateCode expression env
 -- Assignments
 generateCode (Assignment imlIdent@(Ident name pos)                  expression _) env = generateAssignmentCode imlIdent (thd3 $ getIdent env name pos) (generateCode expression env)
@@ -309,6 +311,10 @@ generateCode (Assignment imlIdent@(IdentArray (Ident name pos) _ _) expression _
 -- IdentFactor
 generateCode (IdentFactor ident Nothing _) env = generateCode ident env
 -- DyadicOpr
+generateCode (DyadicOpr Parser.And a b pos) env = (expressionInstructions ++ [mult32 pos, loadIm32 0, gt32], updatePcSp newEnv 5 (-1))
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)] ++ fst (generateCode b env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)], snd $ generateCode b (snd $ generateCode a env))
+generateCode (DyadicOpr Parser.Or a b pos) env = (expressionInstructions ++ [add32 pos, loadIm32 0, gt32], updatePcSp newEnv 5 (-1))
+    where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)] ++ fst (generateCode b env) ++ [Convert IntVmTy Int32VmTy $ rc2loc (toRc pos)], snd $ generateCode b (snd $ generateCode a env))
 generateCode (DyadicOpr op a b pos) env = (expressionInstructions ++ [getDyadicOpr op pos], updatePcSp newEnv 1 (-1))
     where (expressionInstructions, newEnv) = (fst (generateCode a env) ++ fst (generateCode b env), snd $ generateCode b (snd $ generateCode a env))
 -- If

@@ -118,37 +118,38 @@ parseProgram = do
     return $ Program name params functions statements pos
 
 parseFunctionList, parseStatementList, parseParamList :: Parser [IMLVal]
-parseFunctionList  = many $ try parseFunction
-parseStatementList = many $ try parseStatement
+parseFunctionList  = many parseFunction
+parseStatementList = many parseStatement
 parseParamList = brackets (parseParam `sepBy` string ",")
 
 -- Statement
 
 parseStatement :: Parser IMLVal
 parseStatement = 
-        try parseBraketStatement
-    <|> try parseIf
-    <|> try parseWhile
-    <|> try parseFor
-    <|> try parseFunctionCall
-    <|> try parseIdentDeclaration 
+    parseIf
+    <|> parseWhile
+    <|> parseFor
+    <|> try parseBraketStatement
+    <|> try parseIdentDeclaration
     <|> try parseAssignment
+    <|> parseFunctionCall
     <?> "Could not parse statement"
 
 parseBraketStatement :: Parser IMLVal
 parseBraketStatement = do 
     spaces
     statement <- brackets parseStatement
-    spaces
     return statement
 
 parseFunctionCall :: Parser IMLVal
 parseFunctionCall = do
-    spaces
-    pos <- getPosition
-    identName <- parseIdent
-    spaces
-    params <- brackets (parseArgument `sepBy` string ",")
+    (pos, identName, params) <- try $ do
+        spaces
+        pos <- getPosition
+        identName <- parseIdent
+        spaces
+        params <- brackets (parseArgument `sepBy` string ",")
+        return (pos, identName, params)
     spaces
     char ';'
     return $ FunctionCall identName params pos
@@ -161,9 +162,11 @@ parseArgument = do
     
 parseIf :: Parser IMLVal
 parseIf = do
-    spaces
-    pos <- getPosition
-    string "if"
+    pos <- try $ do
+        spaces
+        pos <- getPosition
+        string "if"
+        return pos
     spaces
     condition <- brackets parseExpr
     spaces
@@ -182,21 +185,25 @@ parseElse = do
 
 parseWhile :: Parser IMLVal
 parseWhile = do
-    spaces
-    pos <- getPosition
-    string "while"
+    pos <- try $ do
+        spaces
+        pos <- getPosition
+        string "while"
+        return pos
     spaces
     condition <- brackets parseExpr
     spaces
     statements <- braces parseStatementList
-    spaces
+    --spaces
     return $ While condition statements pos
 
 parseFor :: Parser IMLVal
 parseFor = do
-    spaces
-    pos <- getPosition
-    string "for"
+    pos <- try $ do
+        spaces
+        pos <- getPosition
+        string "for"
+        return pos
     spaces
     condition <- brackets parseExpr
     spaces
@@ -205,12 +212,14 @@ parseFor = do
 
 parseAssignment :: Parser IMLVal
 parseAssignment = do
+    --(pos, identName) <- try $ do 
     spaces
     pos <- getPosition
     identName <- parseIdentOrArrayIdent
     spaces
     string ":="
     spaces
+        --return (pos, identName)
     expression <- parseExpr
     spaces
     char ';'
@@ -233,7 +242,7 @@ parseArrayIdent = do
     return $ IdentArray ident index pos
 
 parseIdentDeclaration :: Parser IMLVal
-parseIdentDeclaration = do 
+parseIdentDeclaration = do
     spaces
     pos <- getPosition
     changeMode <- parseChangeMode
@@ -246,16 +255,17 @@ parseIdentDeclaration = do
 
 parseFunction :: Parser IMLVal
 parseFunction = do
-    spaces
-    pos <- getPosition
-    string "def"
+    pos <- try $ do
+        spaces
+        pos <- getPosition
+        try $ string "def";
+        return pos
     spaces
     identName <- parseIdent
     spaces
     params <- parseParamList
     spaces
     statements <- braces parseStatementList
-    spaces
     return $ FunctionDeclaration identName params statements pos
 
 parseParam :: Parser IMLVal

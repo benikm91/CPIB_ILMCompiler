@@ -8,6 +8,16 @@ prog sample1(in m: int, in n: int, out o: int) {
 
   }
 
+  while(a < b)
+  {
+    a := c;
+    a := c;
+    if(b > c) {
+      a := c;
+    }
+  }
+
+
   //asölkdaksöldasjölkd
   var o1:int(0 .. 10);
   var array:int[0 .. 100];
@@ -38,7 +48,7 @@ prog sample1(in m: int, in n: int, out o: int) {
   var b: int;
   o1 := b;
   //asdasdasdas
-  while (a init > b init) {
+  while (a > b) {
     func1(m, o1);
     func3(m, o1);
   }

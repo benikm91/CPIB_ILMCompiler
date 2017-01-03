@@ -14,7 +14,9 @@ readAndCompile = do
     -- "E:/Users/Christian/Documents/FHNW/Semester5/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     -- "D:/OneDrive/Dokumente/FHNW-MightyTower/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     putStrLn $ "compiling " ++ program
+    putStrLn "=============== Abstract Syntax Tree ==============="
     putStrLn $ printTree (readExpr program)
+    putStrLn "===================================================="
     putStrLn $ show (compile program)
     t <- (debugProgramStack . compile) program
     print t

@@ -93,15 +93,15 @@ data Instruction
 
 readS :: Stack -> StoreAddress -> VmValue
 readS stack addr 
-  | addr < 0 = error ("read: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
-  | ((length stack - 1) - addr) < 0 = error ("readS: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | addr < 0 = error ("read: invalid stack address | address: " ++ show addr ++ " | stack size: " ++ (show $ length stack) ++ " | stack: " ++ show stack ++ "\n")
+  | ((length stack - 1) - addr) < 0 = error ("read: invalid stack address | address: " ++ show addr ++ " | stack size: " ++ (show $ length stack) ++ " | stack: " ++ show stack ++ "\n")
   | otherwise = stack !! ((length stack - 1) - addr)
 
 
 updateS :: Stack -> (StoreAddress, VmValue) -> Stack
 updateS stack (addr, val) 
-  | addr < 0  = error ("update: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
-  | ((length stack - 1) - addr) < 0 = error ("update: invalid stack address | address is: " ++ show addr ++ " | Stack is: " ++ show stack ++ "\n")
+  | addr < 0 = error ("update: invalid stack address | address: " ++ show addr ++ " | stack size: " ++ (show $ length stack) ++ " | stack: " ++ show stack ++ "\n")
+  | ((length stack - 1) - addr) < 0 = error ("update: invalid stack address | address: " ++ show addr ++ " | stack size: " ++ (show $ length stack) ++ " | stack: " ++ show stack ++ "\n")
   | otherwise = stack'
   where
     stack' = top ++ (val : bottom)

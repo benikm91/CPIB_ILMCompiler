@@ -7,13 +7,14 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 
 type Message = String
 
-data Type = TCBool | TCInt | None
+data Type = TCBool | TCInt | TCIntArray | None
     deriving(Eq)
 
 instance Show Type where
-  show TCBool = "bool"
-  show TCInt  = "int"
-  show None   = "none"
+  show TCBool       = "bool"
+  show TCInt        = "int"
+  show TCIntArray   = "intArray"
+  show None         = "none"
 
 type Symbol = (String, Type)
 
@@ -40,13 +41,14 @@ checkType (Program _ params functions statements pos) symbolTable = (None, symbo
           symbol2 = checkTypeMultiple functions symbol1
           symbol3 = checkTypeMultiple statements symbol2
 checkType (Ident name pos) symbolTable = ((getIdentType name symbolTable pos), symbolTable)
+checkType (IdentDeclaration _ (Ident name _) (ArrayInt _ _) _) symbolTable = (None, (addIdent name TCIntArray symbolTable))
 checkType (IdentDeclaration _ (Ident name _) _ _) symbolTable = (None, (addIdent name TCInt symbolTable))
 checkType (ParamDeclaration _ _ (Ident name _) _ _) symbolTable = (None, (addIdent name TCInt symbolTable))
 checkType (IdentFactor expression _ pos) symbolTable = checkType expression symbolTable --TODO: correct??
 checkType (IdentArray (Ident name _) indexExpr pos) symbolTable
-    | getIdentType name symbolTable pos /= TCInt = error $ "Invalid array identifier" ++ show pos
+    | getIdentType name symbolTable pos /= TCIntArray = error $ "Invalid array identifier" ++ show pos
     | indexType /= TCInt = error $ "Illegal index type: " ++ show TCInt ++ " expected, " ++ show indexType ++ " found! " ++ show pos
-    | otherwise = (None, symbolTable2)
+    | otherwise = (TCInt, symbolTable2)
     where (indexType, symbolTable2) = checkType indexExpr symbolTable
 checkType (Literal literal pos) symbolTable = (getLiteralType(literal), symbolTable)
 checkType (MonadicOpr op a pos) symbolTable = checkTypeMonadic op a pos symbolTable
@@ -70,15 +72,17 @@ checkType (While condition statements pos) symbolTable
     where (condType, symbol1) = checkType condition symbolTable
           symbol2 = checkTypeMultiple statements symbol1
 checkType (For condition statements pos) symbolTable 
-    | condType /= TCBool = error $ "Illegal For condition type : " ++ show TCBool ++ " expected, " ++ show condType ++ " found! " ++ show pos
+    | condType /= TCInt = error $ "Illegal For condition type : " ++ show TCInt ++ " expected, " ++ show condType ++ " found! " ++ show pos
     | otherwise = (None, symbol2)
     where (condType, symbol1) = checkType condition symbolTable
           symbol2 = checkTypeMultiple statements symbol1
 checkType (Assignment (Ident ident _) expression pos) symbolTable 
-    | condType /= identType = error $ "Illegal assignment type type : " ++ show identType ++ " expected, " ++ show condType ++ " found! " ++ show pos
-    | otherwise = (identType, symbolTable)
+    | condType /= identType2 = error $ "Illegal assignment type type : " ++ show identType2 ++ " expected, " ++ show condType ++ " found! " ++ show pos
+    | otherwise = (None, symbolTable)
     where (condType, _) = checkType expression symbolTable
           identType = getIdentType ident symbolTable pos
+          identType2 = if identType == TCIntArray then TCInt else identType
+checkType _ symbolTable = (None, symbolTable)
 
 checkTypeMonadic :: IMLOperation -> IMLVal -> SourcePos -> [Symbol] -> (Type, [Symbol])
 checkTypeMonadic op a pos symbolTable

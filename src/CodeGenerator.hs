@@ -186,11 +186,26 @@ toHaskellVM _ = error "Input is not a Program \n"
 
 generateOutputs :: Enviroment -> ([Instruction], Enviroment)
 generateOutputs env@(pc, sp, global, [] : []) = ([], env)
-generateOutputs env@(pc, sp, global, ((name, addr, Param _ Out   _) : rest) : []) = (restInstructions ++ [loadAddress addr, deref, output32 name], finalEnv)
-    where (restInstructions, finalEnv) = generateOutputs (pc + 3, sp - 1, global, [rest])
-generateOutputs env@(pc, sp, global, ((name, addr, Param _ InOut _) : rest) : []) = (restInstructions ++ [loadAddress addr, deref, output32 name], finalEnv)
-    where (restInstructions, finalEnv) = generateOutputs (pc + 3, sp - 1, global, [rest])
+-- Array
+generateOutputs env@(pc, sp, global, ((name, addr, Param (ArrayInt amin amax) Out   _) : rest) : []) = (restInstructions ++ newInstructions, finalEnv)
+    where arrayLength = amax - amin + 1
+          (newInstructions, newEnv) = (concat $ map (\x -> generateOutputCode (addr + x) (name ++ "[" ++ (show x) ++ "]")) [0..(arrayLength -1)], (pc + (length newInstructions), sp - arrayLength, global, [rest]))
+          (restInstructions, finalEnv) = generateOutputs newEnv 
+generateOutputs env@(pc, sp, global, ((name, addr, Param (ArrayInt amin amax) InOut   _) : rest) : []) = (restInstructions ++ newInstructions, finalEnv)
+    where arrayLength = amax - amin + 1
+          (newInstructions, newEnv) = (concat $ map (\x -> generateOutputCode (addr + x) (name ++ "[" ++ (show x) ++ "]")) [0..(arrayLength -1)], (pc + (length newInstructions), sp - arrayLength, global, [rest]))
+          (restInstructions, finalEnv) = generateOutputs newEnv
+-- Rest
+generateOutputs env@(pc, sp, global, ((name, addr, Param _ Out   _) : rest) : []) = (restInstructions ++ newInstructions, finalEnv)
+    where (newInstructions, newEnv) = (generateOutputCode addr name, (pc + (length newInstructions), sp - 1, global, [rest]))
+          (restInstructions, finalEnv) = generateOutputs newEnv
+generateOutputs env@(pc, sp, global, ((name, addr, Param _ InOut _) : rest) : []) = (restInstructions ++ newInstructions, finalEnv)
+    where (newInstructions, newEnv) = (generateOutputCode addr name, (pc + (length newInstructions), sp - 1, global, [rest]))
+          (restInstructions, finalEnv) = generateOutputs newEnv
 generateOutputs env@(pc, sp, global, ((name, addr, Param _ _     _) : rest) : []) = generateOutputs (pc, sp - 1, global, [rest])
+
+generateOutputCode :: Address -> String -> [Instruction]
+generateOutputCode addr name = [loadAddress addr, deref, output32 name]
 
 generateInputs :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
 generateInputs statements startEnv = foldl connectInput ([], addLocalScope [] startEnv) statements
@@ -217,6 +232,13 @@ generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name ident
     | otherwise = ([instruction], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param var imlFlowMode changeMode) identPos
           instruction = getLoadInputInstruction imlFlowMode cmin name
+-- Array
+generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name identPos) var@(ArrayInt amin amax) pos) env
+    | amax <= amin = error ("Max of Array must be greater than min" ++ printLine pos ++ " | " ++ show var ++ "\n")
+    | otherwise = (instructions, updatePcSp newEnv (length instructions) arrayLength)
+    where arrayLength = amax - amin + 1;
+          newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param var imlFlowMode changeMode) identPos
+          instructions = concat $ map (\x -> [ (getLoadInputInstruction imlFlowMode 0 (name ++ "[" ++ show x ++ "]")) ]) [0.. (arrayLength - 1)] 
 
 getLoadInputInstruction :: IMLFlowMode -> Int -> String -> Instruction
 getLoadInputInstruction Out i _ = loadIm32 $ toInteger i

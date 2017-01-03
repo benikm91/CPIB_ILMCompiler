@@ -24,20 +24,17 @@ data IMLOperation = Times | Div | Mod
 data IMLLiteral = IMLBool Bool | IMLInt Int
             deriving Show
 
--- sourceLine :: SourcePos -> Line (Int)
--- sourceColumn :: SourcePos -> Column (Int)
-
 data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] SourcePos -- Name [ParamDeclarations] [FunctionDeclarations] [Statements]
             | Ident String SourcePos -- name
-            | IdentDeclaration IMLChangeMode IMLVal IMLType SourcePos-- changeMode Ident type
+            | IdentDeclaration IMLChangeMode IMLVal IMLType SourcePos -- changeMode Ident type
             | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType SourcePos
-            | IdentFactor IMLVal (Maybe IMLVal) SourcePos
-            | IdentArray IMLVal IMLVal SourcePos
-            | DyadicOpr IMLOperation IMLVal IMLVal SourcePos
-            | MonadicOpr IMLOperation IMLVal SourcePos
-            | Literal IMLLiteral SourcePos
+            | IdentFactor IMLVal (Maybe IMLVal) SourcePos -- name _
+            | IdentArray IMLVal IMLVal SourcePos -- name indexExpression
+            | DyadicOpr IMLOperation IMLVal IMLVal SourcePos -- opreration expression expression
+            | MonadicOpr IMLOperation IMLVal SourcePos -- opperation expression
+            | Literal IMLLiteral SourcePos -- literal
             | Init
-            | ExprList [IMLVal] SourcePos
+            | ExprList [IMLVal] SourcePos -- [expression]
             | Message String
             | FunctionDeclaration IMLVal [IMLVal] [IMLVal] SourcePos -- Name [Parameters] [Statements]
             | FunctionCall IMLVal [IMLVal] SourcePos -- Name [Parameters]
@@ -53,7 +50,7 @@ printList :: Int -> [IMLVal] -> String
 printList i vals = printTabs i ++ "[\n" ++ intercalate ",\n" (map (printIml (i + 1)) vals) ++ "\n" ++ printTabs i ++ "]"
 
 printTabs :: Int -> String
-printTabs i = concat ["\t" | r <- [0..i]]
+printTabs i = concat ["\t" | r <- [1..i]]
 
 printTree :: IMLVal -> String
 printTree = printIml 0
@@ -63,12 +60,18 @@ printIml i t = printTabs i ++ printElement t
     where printElement (Program name params funcs states _) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
           printElement (Ident name _) = "(Ident "++ name ++")"
           printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType _) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
-          printElement (Assignment name expression _) = "Assignment " ++ show name ++ " := " ++ show expression
+          printElement (Assignment name expression _) = "Assignment " ++ printElement name ++ " := " ++ printElement expression
           printElement (FunctionDeclaration name params states _) = "FunctionDeclaration " ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
-          printElement (FunctionCall name params _) = "FunctionCall " ++ printIml i name ++ "\n" ++ printList i params
+          printElement (FunctionCall name params _) = "FunctionCall " ++ printElement name ++ "\n" ++ printList i params
           printElement (If condition ifStates elseStates _) = "If \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
           printElement (While condition states _) = "While \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
           printElement (DyadicOpr op term1 term2 _) = "DyadicOpr " ++ show op ++ "\n" ++ printTabs i ++ "(\n" ++ printIml (i+1) term1 ++ ",\n" ++ printIml (i+1) term2 ++ "\n" ++ printTabs i ++ ")"
+          printElement (IdentFactor name _ _) = "IdentFactor " ++ printIml 0 name;
+          printElement (Literal literal _) = "Literal " ++ show literal
+          printElement (IdentDeclaration changeMode name imlType _) = "IdentDeclaration " ++ show changeMode ++ " " ++ printIml 0 name ++ " " ++ show imlType
+          printElement (IdentFactor name _ _) = "IdentFactor " ++ printIml 0 name
+          printElement (IdentArray name indexExpression _) = "IdentArray " ++ printElement name ++ printIml 0 indexExpression
+          printElement (IdentDeclaration imlChangeMode name imlType _) = "IdentDeclaration " ++ show imlChangeMode ++ " " ++ printElement name ++ " " ++ show imlType
           printElement t = show t
 
 -- END PRINT

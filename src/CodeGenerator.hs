@@ -368,8 +368,7 @@ generateStoreOutputsCode (next : rest) env = (newInstructions ++ restInstruction
 handleNext :: (IMLVal, Ident) -> Enviroment -> ([Instruction], Enviroment)
 handleNext (IdentFactor (Ident name pos) _ _, (_, _, Param _ Out   changeMode)) env@(_, fp, sp, _, _) = ([ loadAddrRel $ getIdentAddress env name pos, loadAddrRel $ sp - 1, deref, store ], updatePcSp env 4 (-1))
 handleNext (IdentFactor (Ident name pos) _ _, (_, _, Param _ InOut changeMode)) env@(_, fp, sp, _, _) = ([ loadAddrRel $ getIdentAddress env name pos, loadAddrRel $ sp - 1, deref, store ], updatePcSp env 4 (-1))
-handleNext (IdentFactor (Ident name pos) _ _, (_, _, Param _ In changeMode)) env@(_, _, sp, _, _) = ([], updateSp env (-1))
-handleNext t env = error $ "Couldn't match " ++ show t 
+handleNext _ env@(_, _, sp, _, _) = ([], updateSp env (-1))
 
 generateIdentDeclarationCode :: String -> IMLChangeMode -> IMLType -> Enviroment -> SourcePos -> ([Instruction], Enviroment)
 generateIdentDeclarationCode name changeMode Int env pos = ([loadIm32 0], updatePcSp newEnv 1 1)

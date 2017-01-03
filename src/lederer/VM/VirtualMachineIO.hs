@@ -371,6 +371,8 @@ execInstr (Ge Int1024VmTy) (pc, fp, Int1024VmVal y : Int1024VmVal x : stack) =
 
 execInstr (Convert fromTy toTy loc) (pc, fp, vmVal : stack) =
   case (fromTy, vmVal, toTy) of
+    (IntVmTy, IntVmVal a, Int32VmTy) ->
+      return2 (pc + 1, fp, Int32VmVal (fromInttoInt32 a) : stack)
     (Int32VmTy, Int32VmVal a, IntVmTy) ->
       return2 (pc + 1, fp, IntVmVal (fromInt32toInt a) : stack)
     (Int32VmTy, Int32VmVal a, Int64VmTy) ->

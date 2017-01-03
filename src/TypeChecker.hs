@@ -28,7 +28,6 @@ addIdent ident identType symbolTable = (ident, identType) : symbolTable
 
 checkTypes :: IMLVal -> (Type, [Symbol])
 checkTypes program = checkType program []
-    where ()
 
 checkTypeMultiple :: [IMLVal] -> [Symbol] -> [Symbol]
 checkTypeMultiple [] symbolTable = symbolTable

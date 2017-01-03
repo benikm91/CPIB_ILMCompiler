@@ -1,0 +1,14 @@
+prog factorProg(inOut n : int, out o : int) {
+    
+    def factor(inOut n : int, inOut accumulate : int) {
+        if (n > 0) {
+            accumulate := accumulate * n;
+            n := n - 1;
+            factor(n, accumulate);
+        }
+    }
+
+    o := 1;
+    factor (n, o);
+
+}

@@ -4,13 +4,14 @@ prog selectionSort(inOut a : int[0..5]) {
 
     var minIndex: int;
     var arrayIndex : int (0..6);
-    var temp : int;
 
     for (toSortIndex) {
 
         minIndex := toSortIndex;
         arrayIndex := toSortIndex + 1;
 
+        var temp : int;
+        
         for (arrayIndex) {
             if (a[minIndex] > a[arrayIndex]) {
                 minIndex := arrayIndex;

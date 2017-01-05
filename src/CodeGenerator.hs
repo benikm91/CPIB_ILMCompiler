@@ -119,6 +119,9 @@ addLocalIdent env@(pc, fp, sp, global, locals) ident@(name, _, _) pos = case fin
 addLocalScope :: Scope -> Enviroment -> Enviroment 
 addLocalScope scope (pc, fp, sp, global, locals) = (pc, fp, sp, global, [scope] ++ locals)  
 
+dropLocalScope :: Enviroment -> Enviroment
+dropLocalScope (pc, fp, sp, global, toRemove : rest) = (pc, fp, sp - (length toRemove), global, rest)   
+
 addToLocalScope :: [Scope] -> Ident -> [Scope]
 addToLocalScope (next : rest) ident = (ident : next) : rest 
 
@@ -288,8 +291,11 @@ generateFunctionInputCode (ParamDeclaration flowMode _ (Ident name _) _ _) = [ ]
 
 -- HERE THE LOCAL ENVIROMENT GETS UPDATED
 generateScopeCode ::  [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
-generateScopeCode statements startEnv = dropLocalScope $ generateMultiCode statements (addLocalScope [] startEnv)
-    where dropLocalScope (instructions, (pc, fp, sp, global, _ : locals)) = (instructions, (pc, fp, sp, global, locals))
+generateScopeCode statements startEnv = (newInstructions, newEnv)
+    where (scopeInstructions, scopeEndEnv) = generateMultiCode statements (addLocalScope [] startEnv)
+          (dropScopeInstructions, dropScopeEndEnv) = ([ MoveSpUp (length $ (head . getLocalScopes) scopeEndEnv) ], updatePc (dropLocalScope scopeEndEnv) 1)
+          newInstructions = scopeInstructions ++ dropScopeInstructions
+          newEnv = dropScopeEndEnv       
 
 generateMultiCode :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
 generateMultiCode instructions startEnv = foldl connectCode ([], startEnv) instructions

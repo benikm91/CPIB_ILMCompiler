@@ -11,79 +11,6 @@ import Data.Monoid
 import CheckedArithmetic
 import Text.ParserCombinators.Parsec hiding (spaces)
 
-fst3 :: (a, b, c) -> a
-fst3 (a, _, _) = a
-
-snd3 :: (a, b, c) -> b
-snd3 (_, b, _) = b
-
-thd3 ::  (a, b, c) -> c
-thd3 (_, _, c) = c
-
--- TODO WHY DO WE HAVE TO HAVE SUCH SHIT!!!
-fromRight :: Either a b -> b
-fromRight (Right b) = b
-fromRight _ = error "Not left"
-
--- Instructions
-
-neg :: SourcePos -> Instruction
-neg pos = Neg Int32VmTy $ rc2loc $ toRc pos
-
-add32, sub32, mult32, divFloor32, modf :: SourcePos -> Instruction
-add32      pos = Add Int32VmTy $ rc2loc (toRc pos)
-sub32      pos = Sub Int32VmTy $ rc2loc(toRc pos)
-mult32     pos = Mult Int32VmTy $ rc2loc(toRc pos)
-divFloor32 pos = DivFloor Int32VmTy $ rc2loc(toRc pos)
-modf       pos = VirtualMachineIO.ModFloor Int32VmTy $ rc2loc(toRc pos)
-eq32, ne32, gt32, ge32, lt32, le32 :: Instruction
-eq32 = VirtualMachineIO.Eq Int32VmTy
-ne32 = VirtualMachineIO.Ne Int32VmTy
-gt32 = VirtualMachineIO.Gt Int32VmTy
-ge32 = VirtualMachineIO.Ge Int32VmTy
-lt32 = VirtualMachineIO.Lt Int32VmTy
-le32 = VirtualMachineIO.Le Int32VmTy
-
-toRc :: SourcePos -> RC
-toRc pos = (sourceLine pos, sourceColumn pos)
-
-loadAddress :: Int -> Instruction
-loadAddress addr = LoadIm IntVmTy (IntVmVal addr)
-
-loadAddrRel :: Int -> Instruction
-loadAddrRel = LoadAddrRel
-
-loadIm32 :: Integer -> Instruction
-loadIm32 val = LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 val))
-
-input32 :: String -> SourcePos -> Instruction
-input32 name pos = Input (IntTy 32) (rc2loc $ toRc pos) name
-
-output32 :: String -> Instruction
-output32 name = Output (IntTy 32) name
-
-deref :: Instruction
-deref = Deref
-
-call :: CodeAddress -> Instruction
-call = Call
-
-store :: Instruction
-store = Store
-
-condJump :: CodeAddress -> Instruction
-condJump = CondJump
-
-uncondJump :: CodeAddress -> Instruction
-uncondJump = UncondJump
-
-moveSpUp :: Int -> Instruction
-moveSpUp i = MoveSpUp i
-
--- End Instruction
-
--- data Scope = Local | Global
--- data Access = Direct | Indirect
 type Address = Int
 
 data IdentInfo = Param IMLType IMLFlowMode IMLChangeMode
@@ -97,6 +24,32 @@ type Scope = [Ident]
 
 -- stack of scopes
 type Environment = (CodeAddress, Address, Address, Scope, [Scope]) -- PC, FP, SP Global, Locals
+
+toHaskellVM :: IMLVal -> VMProgram
+toHaskellVM (Program (Ident name _) params functions statements _) = (name, toArray codeArray)
+    where codeArray = inputInstructions ++ callProgram ++ functionInstructions ++ statementInstructions ++ outputInstructions ++ stopInstructions
+          (inputInstructions, inputEndEnv) = generateInputs params emptyEnv
+          (functionInstructions, functionEndEnv) = generateFunctions functions (updatePc inputEndEnv 1)
+          (callProgram, callProgramEndEnv) = ([ UncondJump $ getPc functionEndEnv ], functionEndEnv)
+          (statementInstructions, statementEndEnv) = generateScopeCode statements callProgramEndEnv
+          (outputInstructions, outputEndEnv) = generateOutputs statementEndEnv
+          (stopInstructions, _) = ([Stop], updatePc outputEndEnv 1)
+toHaskellVM _ = error "Input is not a Program \n"
+
+-- Helper Functions
+
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
+
+snd3 :: (a, b, c) -> b
+snd3 (_, b, _) = b
+
+thd3 ::  (a, b, c) -> c
+thd3 (_, _, c) = c
+
+fromRight :: Either a b -> b
+fromRight (Right b) = b
+fromRight _ = error "Not left"
 
 extractImlType :: IdentInfo -> IMLType
 extractImlType (Param imlType _ _) = imlType
@@ -185,16 +138,64 @@ emptyEnv = (0, 0, 0, [], [])
 printLine :: SourcePos -> String
 printLine pos = " on line " ++ (show $ sourceLine pos) ++ " collum " ++ (show $ sourceColumn pos)
 
-toHaskellVM :: IMLVal -> VMProgram
-toHaskellVM (Program (Ident name _) params functions statements _) = (name, toArray codeArray)
-    where codeArray = inputInstructions ++ callProgram ++ functionInstructions ++ statementInstructions ++ outputInstructions ++ stopInstructions
-          (inputInstructions, inputEndEnv) = generateInputs params emptyEnv
-          (functionInstructions, functionEndEnv) = generateFunctions functions (updatePc inputEndEnv 1)
-          (callProgram, callProgramEndEnv) = ([ UncondJump $ getPc functionEndEnv ], functionEndEnv)
-          (statementInstructions, statementEndEnv) = generateScopeCode statements callProgramEndEnv
-          (outputInstructions, outputEndEnv) = generateOutputs statementEndEnv
-          (stopInstructions, _) = ([Stop], updatePc outputEndEnv 1)
-toHaskellVM _ = error "Input is not a Program \n"
+-- End Helper Functions
+
+-- Instructions
+
+neg :: SourcePos -> Instruction
+neg pos = Neg Int32VmTy $ rc2loc $ toRc pos
+
+add32, sub32, mult32, divFloor32, modf :: SourcePos -> Instruction
+add32      pos = Add Int32VmTy $ rc2loc (toRc pos)
+sub32      pos = Sub Int32VmTy $ rc2loc(toRc pos)
+mult32     pos = Mult Int32VmTy $ rc2loc(toRc pos)
+divFloor32 pos = DivFloor Int32VmTy $ rc2loc(toRc pos)
+modf       pos = VirtualMachineIO.ModFloor Int32VmTy $ rc2loc(toRc pos)
+eq32, ne32, gt32, ge32, lt32, le32 :: Instruction
+eq32 = VirtualMachineIO.Eq Int32VmTy
+ne32 = VirtualMachineIO.Ne Int32VmTy
+gt32 = VirtualMachineIO.Gt Int32VmTy
+ge32 = VirtualMachineIO.Ge Int32VmTy
+lt32 = VirtualMachineIO.Lt Int32VmTy
+le32 = VirtualMachineIO.Le Int32VmTy
+
+toRc :: SourcePos -> RC
+toRc pos = (sourceLine pos, sourceColumn pos)
+
+loadAddress :: Int -> Instruction
+loadAddress addr = LoadIm IntVmTy (IntVmVal addr)
+
+loadAddrRel :: Int -> Instruction
+loadAddrRel = LoadAddrRel
+
+loadIm32 :: Integer -> Instruction
+loadIm32 val = LoadIm Int32VmTy (Int32VmVal (fromRight $ fromIntegerToInt32 val))
+
+input32 :: String -> SourcePos -> Instruction
+input32 name pos = Input (IntTy 32) (rc2loc $ toRc pos) name
+
+output32 :: String -> Instruction
+output32 name = Output (IntTy 32) name
+
+deref :: Instruction
+deref = Deref
+
+call :: CodeAddress -> Instruction
+call = Call
+
+store :: Instruction
+store = Store
+
+condJump :: CodeAddress -> Instruction
+condJump = CondJump
+
+uncondJump :: CodeAddress -> Instruction
+uncondJump = UncondJump
+
+moveSpUp :: Int -> Instruction
+moveSpUp i = MoveSpUp i
+
+-- End Instruction
 
 generateOutputs :: Environment -> ([Instruction], Environment)
 generateOutputs env@(pc, fp, sp, global, [] : []) = ([], env)
@@ -222,7 +223,6 @@ generateOutputCode addr name = [loadAddress addr, deref, output32 name]
 generateInputs :: [IMLVal] -> Environment -> ([Instruction], Environment)
 generateInputs statements startEnv = foldl connectInput ([], addLocalScope [] startEnv) statements
 
--- TODO better name
 connectInput :: ([Instruction], Environment) -> IMLVal -> ([Instruction], Environment)
 connectInput (instructions, env) statement = (instructions ++ newInstructions, newEnv)
     where (newInstructions, newEnv) = generateInput statement env
@@ -230,8 +230,6 @@ connectInput (instructions, env) statement = (instructions ++ newInstructions, n
 generateInput :: IMLVal -> Environment -> ([Instruction], Environment)
 generateInput p env = (newInstructions, newEnv)
     where (newInstructions, newEnv) = generateInputCode p env
-        --   newIdent = (name, sp, Param imlType flowMode changeMode)
-        --   newEnv = (pc + length newInstructions, sp + 1, global, addToLocalScope locals newIdent)
 
 generateInputCode :: IMLVal -> Environment -> ([Instruction], Environment)
 -- Int
@@ -292,7 +290,7 @@ generateFunctionInput p@(ParamDeclaration flowMode changeMode (Ident name _) iml
 generateFunctionInputCode :: IMLVal -> [Instruction]
 generateFunctionInputCode (ParamDeclaration flowMode _ (Ident name _) _ _) = [ ]
 
--- HERE THE LOCAL ENVIROMENT GETS UPDATED
+
 generateScopeCode ::  [IMLVal] -> Environment -> ([Instruction], Environment)
 generateScopeCode statements startEnv = (newInstructions, newEnv)
     where (scopeInstructions, scopeEndEnv) = generateMultiCode statements (addLocalScope [] startEnv)
@@ -310,7 +308,7 @@ connectCode (instructions, env) statement = (instructions ++ newInstructions, ne
 generateCode :: IMLVal -> Environment -> ([Instruction], Environment)
 -- Ident
 generateCode (Ident name pos) env = ([loadAddrRel $ getIdentAddress env name pos, deref ], updatePcSp env 2 1)
--- array deref TODO: set correct location
+-- array deref
 generateCode (IdentArray (Ident name identPos) indexExpr identArrPos) env = (loadAddressInstr ++ [deref], updatePc loadAddressEnv 1)
     where (loadAddressInstr, loadAddressEnv) = loadArrayAddress (IdentArray (Ident name identPos) indexExpr identArrPos) env
 generateCode (Literal (IMLInt i) _) env = ([loadIm32 $ toInteger i], updatePcSp env 1 1)
@@ -362,6 +360,7 @@ generateCode (For _ _ pos) env = error ("For only accepts an clamp Int" ++ print
 -- others
 generateCode s _ = error $ "not implemented" ++ show s
 
+
 generateForCode :: Ident -> [IMLVal] -> Environment -> SourcePos -> ([Instruction], Environment)
 generateForCode ident@(name, addr, (CodeGenerator.Var (ClampInt cmin cmax) _)) statements env pos = (statementInstructions ++ condInstructions ++ incInstructions ++ leaveInstructions, newEnv)
     where (statementInstructions, statementsEndEnv) = generateScopeCode statements env
@@ -369,8 +368,6 @@ generateForCode ident@(name, addr, (CodeGenerator.Var (ClampInt cmin cmax) _)) s
           (incInstructions, incEndEnv) = generateMultiCode [(Assignment (Ident name pos) (DyadicOpr Parser.Plus (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt 1) pos) pos) pos)] condEndEnv
           (leaveInstructions, leaveEndEnv) = ([condJump (getPc env)], updatePcSp incEndEnv 1 (-1))
           newEnv = leaveEndEnv
-    --where newCondition = (DyadicOpr Parser.Le (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt cmax) pos) pos)
-    --      newStatements = statements ++ [(Assignment (Ident name pos) (DyadicOpr Parser.Plus (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt 1) pos) pos) pos)]
 generateForCode _ _ _ pos = error ("For only accepts an clamp Int" ++ printLine pos ++ "\n")
 
 generateStoreOutputsCode :: [(IMLVal, Ident)] -> Environment -> ([Instruction], Environment)
@@ -437,14 +434,6 @@ generateClampAssignmentCode (ClampInt cmin cmax) env = (checkMaxInst ++ checkMin
           storeOverMax =  [moveSpUp 1, loadIm32 $ toInteger cmax, store, uncondJump afterAssignmentPc]
           storeUnderMin = [moveSpUp 1, loadIm32 $ toInteger cmin, store]
 generateClampAssignmentCode _ _ = error "Type is not a ClampInt"
-
--- generateCodeWithNewScope :: [IMLVal] -> Environment -> ([Instruction], Environment)
--- generateCodeWithNewScope vals env = generateStatmensCode vals (addNewLocalScope env) []
-
--- generateStatmensCode :: [IMLVal] -> Environment -> [Instruction] -> ([Instruction], Environment)
--- generateStatmensCode [] env intructions = (intructions, removeLocalScope env)
--- generateStatmensCode (val:rest) env intructions = generateStatmensCode rest newEnv (intructions ++ newInstructions)
---     where (newInstructions, newEnv) = generateCode val env
 
 getDyadicOpr :: IMLOperation -> SourcePos -> Instruction
 getDyadicOpr Parser.Plus  pos = add32 pos

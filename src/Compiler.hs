@@ -2,7 +2,7 @@ module Compiler
     ( readAndCompile
     ) where
 
-import TypeChecker
+import Checker
 import CodeGenerator
 import Parser
 import Path
@@ -11,9 +11,6 @@ import VirtualMachineIO
 readAndCompile :: IO ()
 readAndCompile = do
     program <- readFile getFilePath
-    -- "/Users/benikm91/Documents/FHNW/Semester5/cpib/MyStuff/compiler/sample/sample1.iml"
-    -- "E:/Users/Christian/Documents/FHNW/Semester5/cpib/CPIB_ILMCompiler/sample/sample1.iml"
-    -- "D:/OneDrive/Dokumente/FHNW-MightyTower/cpib/CPIB_ILMCompiler/sample/sample1.iml"
     putStrLn "=============== Input Program ==============="
     putStrLn $ program
     putStrLn "=============== Abstract Syntax Tree ==============="
@@ -26,12 +23,6 @@ readAndCompile = do
     t <- (debugProgramStack . compile) program
     print t
     putStrLn "===================================================="
-    --putStrLn $ compile program
-
---compile = do y
-  --program <- getLine
-  --let res = compile program
-    --putStrLn res
 
 compile :: String -> VMProgram
 compile = toHaskellVM . readExpr

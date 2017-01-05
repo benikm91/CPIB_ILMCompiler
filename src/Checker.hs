@@ -1,4 +1,4 @@
-module TypeChecker
+module Checker
     ( checkTypes, Type(..)
     ) where
 

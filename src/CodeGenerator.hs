@@ -77,6 +77,9 @@ condJump = CondJump
 uncondJump :: CodeAddress -> Instruction
 uncondJump = UncondJump
 
+moveSpUp :: Int -> Instruction
+moveSpUp i = MoveSpUp i
+
 -- End Instruction
 
 -- data Scope = Local | Global
@@ -398,11 +401,11 @@ generateAssignmentCode :: IMLVal -> IdentInfo -> ([Instruction], Enviroment) -> 
 -- clamp assginment (var)
 generateAssignmentCode (Ident name pos) (CodeGenerator.Var var@(ClampInt _ _) _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePcSp clampEnv 1 (-1))
     where loadInst = loadAddress $ getIdentAddress exprEnv name pos
-          (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
+          (clampInst, clampEnv) = generateClampAssignmentCode var exprEnv
 -- clamp assginment (param)
 generateAssignmentCode (Ident name pos) (Param var@(ClampInt _ _) _ _) (exprInst, exprEnv) = ([loadInst] ++ exprInst ++ clampInst, updatePcSp clampEnv 1 (-1))
     where loadInst = loadAddress $ getIdentAddress exprEnv name pos
-          (clampInst, clampEnv) = generateClampAssignmentCode loadInst var exprEnv
+          (clampInst, clampEnv) = generateClampAssignmentCode var exprEnv
 -- array assignment (var)
 generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
     where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
@@ -414,21 +417,21 @@ generateAssignmentCode (Ident name pos) _ (exprInst, exprEnv)= ([loadAddrRel $ g
 generateAssignmentCode t d e = error $ "Could not match . IMLVal: " ++ show t ++ " | identInfo: " ++ show d
 
 -- preconditon address is already loaded in the stack
-generateClampAssignmentCode :: Instruction -> IMLType -> Enviroment -> ([Instruction], Enviroment)
-generateClampAssignmentCode loadAddInst (ClampInt cmin cmax) env = (checkMaxInst ++ checkMinInst ++ storeInRangeInst ++ storeOverMax ++ storeUnderMin, updatePc env (checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + storeOverMaxLenght))
+generateClampAssignmentCode :: IMLType -> Enviroment -> ([Instruction], Enviroment)
+generateClampAssignmentCode (ClampInt cmin cmax) env = (checkMaxInst ++ checkMinInst ++ storeInRangeInst ++ storeOverMax ++ storeUnderMin, updatePc env (checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + storeOverMaxLenght))
     where startPc = getPc env
           checkMaxLength = 4
           checkMinLength = 4
           storeInRangeLength = 2
-          storeOverMaxLenght = 5
-          storeUnderMinLenght = 4
+          storeOverMaxLenght = 4
+          storeUnderMinLenght = 3
           afterAssignmentPc = startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeUnderMinLenght + storeOverMaxLenght + 1
           checkMaxInst = [Dup, loadIm32 $ toInteger cmax, le32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + 1)]
           checkMinInst = [Dup, loadIm32 $ toInteger cmin, ge32, condJump (startPc + checkMaxLength + checkMinLength + storeInRangeLength + storeOverMaxLenght + 1)]
           storeInRangeInst = [store, uncondJump afterAssignmentPc]
-          storeOverMax = [store, loadAddInst, loadIm32 $ toInteger cmax, store, uncondJump afterAssignmentPc]
-          storeUnderMin = [store, loadAddInst, loadIm32 $ toInteger cmin, store]
-generateClampAssignmentCode _ _ _ = error "Type is not a ClampInt"
+          storeOverMax =  [moveSpUp 1, loadIm32 $ toInteger cmax, store, uncondJump afterAssignmentPc]
+          storeUnderMin = [moveSpUp 1, loadIm32 $ toInteger cmin, store]
+generateClampAssignmentCode _ _ = error "Type is not a ClampInt"
 
 -- generateCodeWithNewScope :: [IMLVal] -> Enviroment -> ([Instruction], Enviroment)
 -- generateCodeWithNewScope vals env = generateStatmensCode vals (addNewLocalScope env) []

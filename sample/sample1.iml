@@ -1,57 +1,29 @@
-prog sample1(in m: int, in n: int, out o: int) {
+prog sample1(in m: int, out o: int) {
   def func1(in m: int, out o: int) {
     m := m * 5;
     o := m;
     o := o / 2;
   }
-  def func2(in n: int, out o: int) {
+  def func2(out o: int) {} 
 
+  var i :int;
+  var c :int(0 .. 100);
+  var a :int[50 .. 100];
+
+  c := 50;
+  a[50] := 10;
+
+  //a Comment
+  while(i < c) {
+    a[i+50] := i;
   }
 
-  while(a < b)
-  {
-    a := c;
-    a := c;
-    if(b > c) {
-      a := c;
-    }
+  if(i < 5) {
+    i := i + 5;
+  }
+  else {
+    i := i - 5;
   }
 
-
-  //asölkdaksöldasjölkd
-  var o1:int(0 .. 10);
-  var array:int[0 .. 100];
-  var x:int;
-  x := array[0];
-
-  //hello
-  c := a = b;
-  c := a < b;
-  c := a > b;
-  c := a <= b;
-  c := a >= b;
-  c := a /= b;
-  c := a >= b;
-
-  //asdsdad
-  if (x = 5) {
-    var b: int;
-    func1(m, o1);
-  } else {
-    func2(m, o1);
-  }
-  if (true = (a < 2 &? b /= 3)) {
-    var hambbe: int;
-  }
-  //asdasd
-  var a: int;
-  var b: int;
-  o1 := b;
-  //asdasdasdas
-  while (a > b) {
-    func1(m, o1);
-    func3(m, o1);
-  }
-  var o2: int;
-  func2(n, o2);
+  func1(m, o);
 }

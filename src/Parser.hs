@@ -59,16 +59,17 @@ printIml i t = printTabs i ++ printElement t
     where printElement (Program name params funcs states _) = "Program" ++ printIml i name ++ "\n" ++ printList i params ++ "\n" ++ printList i funcs ++ "\n" ++ printList i states
           printElement (Ident name _) = "(Ident "++ name ++")"
           printElement (ParamDeclaration imlFlowMode imlChangeMode ident imlType _) = "ParamDeclaration " ++ show imlFlowMode ++ " " ++ show imlChangeMode ++ " " ++ printElement ident ++ " " ++ show imlType
-          printElement (Assignment name expression _) = "Assignment " ++ printElement name ++ " := " ++ printElement expression
+          printElement (Assignment name expression _) = "Assignment \n" ++ printIml (i+1) name ++ " := \n" ++ printIml (i+1) expression
           printElement (FunctionDeclaration name params states _) = "FunctionDeclaration " ++ printElement name ++ "\n" ++ printList i params ++ "\n" ++ printList i states
           printElement (FunctionCall name params _) = "FunctionCall " ++ printElement name ++ "\n" ++ printList i params
           printElement (If condition ifStates elseStates _) = "If \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i ifStates ++ "\n" ++ printList i elseStates
           printElement (While condition states _) = "While \n" ++ printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
+          printElement (For condition states _) = "For \n" ++  printTabs i ++ "(\n" ++ printIml (i+1) condition ++ "\n" ++ printTabs i ++ ")\n" ++ printList i states
           printElement (DyadicOpr op term1 term2 _) = "DyadicOpr " ++ show op ++ "\n" ++ printTabs i ++ "(\n" ++ printIml (i+1) term1 ++ ",\n" ++ printIml (i+1) term2 ++ "\n" ++ printTabs i ++ ")"
           printElement (IdentFactor name _ _) = "IdentFactor " ++ printIml 0 name;
           printElement (Literal literal _) = "Literal " ++ show literal
           printElement (IdentDeclaration changeMode name imlType _) = "IdentDeclaration " ++ show changeMode ++ " " ++ printIml 0 name ++ " " ++ show imlType
-          printElement (IdentArray name indexExpression _) = "IdentArray " ++ printElement name ++ printIml 0 indexExpression
+          printElement (IdentArray name indexExpression _) = "IdentArray " ++ printElement name ++ "\n" ++ printIml (i+1) indexExpression
           printElement t = show t
 
 -- END PRINT
@@ -77,9 +78,10 @@ braces, brackets :: Parser a -> Parser a
 braces  = between (do string "{"; spaces) (do spaces; string "}")
 brackets  = between (do string "("; spaces) (do spaces; string ")")
 
+-- sourceCode programName
 readExpr :: String -> IMLVal
-readExpr input = case parse parseProgram "Hambbe" input of
-    Left err -> Message $ "fuck you: " ++ show err
+readExpr input = case parse parseProgram "Program" input of
+    Left err -> Message $ "Parse error: " ++ show err
     Right val -> val
 
 spaces, spaces1 :: Parser ()

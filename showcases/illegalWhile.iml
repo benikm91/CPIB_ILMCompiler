@@ -1,0 +1,6 @@
+prog illegalWhile(out i : int) {
+    var a: int[0..10];
+    while (a[0] + 1 + 2) {
+        i := 10;
+    }
+}

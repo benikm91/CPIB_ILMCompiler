@@ -3,4 +3,8 @@ prog euklid(out o: int) {
     while(o > 0) {
         o := o - 1;
     }
+
+    for(i){
+        i := i + 1;
+    }
 }

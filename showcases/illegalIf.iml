@@ -1,0 +1,5 @@
+prog illegalIf(out i : int) {
+    if (1 + 2 + 3) {
+        i := 10;
+    }
+}

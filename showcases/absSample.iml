@@ -1,7 +1,7 @@
 prog absInt (in a: int, out c : int(0..)) {
     
     if (a < 0) { 
-        c := a * -1;
+        c := -a;
     } else {
         c := a;
     }

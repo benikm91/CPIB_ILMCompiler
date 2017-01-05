@@ -2,7 +2,7 @@ module Compiler
     ( readAndCompile
     ) where
 
-import TypeChecker
+import Checker
 import CodeGenerator
 import Parser
 import Path
@@ -18,8 +18,8 @@ readAndCompile = do
     putStrLn $ program
     putStrLn "=============== Abstract Syntax Tree ==============="
     putStrLn $ printTree (readExpr program)
-    putStrLn "=============== Type Checker ==============="
-    putStrLn $ show $ checkTypes (readExpr program)
+    putStrLn "=============== Static Analysis ==============="
+    putStrLn $ show $ check (readExpr program)
     putStrLn "=============== Compiled Program ==============="
     putStrLn $ show (compile program)
     putStrLn "=============== Run Program ==============="

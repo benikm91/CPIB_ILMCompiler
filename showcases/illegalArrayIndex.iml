@@ -1,0 +1,8 @@
+prog illegalArrayIndex(out i : int) {
+    var a: int[0..1];
+    var j : int;
+    while (j < 20) {
+        a[j] := 10;
+        j := j + 1;
+    } 
+}

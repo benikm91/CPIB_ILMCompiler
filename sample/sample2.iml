@@ -4,7 +4,7 @@ prog euklid(out o: int) {
         o := o - 1;
     }
 
-    for(i){
+    for(i) {
         i := i + 1;
     }
 }

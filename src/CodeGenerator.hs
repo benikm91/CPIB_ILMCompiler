@@ -348,10 +348,10 @@ generateCode (FunctionCall (Ident name pos) params _) env = (prepParams ++ callI
           (moveSpInVM, moveSpInVMEndEnv) = ([MoveSpUp (length (params))], updatePc storeOutputsEndEnv 1)
           newEnv = moveSpInVMEndEnv
 -- While
-generateCode (While condition statements _) env@(_, _, _, global, locals) =  (condInstructions ++ leaveInstructions ++ statmentInstructions ++ goBackInstructions, newEnv)
+generateCode (While condition statements _) env@(_, _, _, global, locals) =  (condInstructions ++ leaveInstructions ++ statementInstructions ++ goBackInstructions, newEnv)
     where (condInstructions, condEndEnv) = generateCode condition env
           (leaveInstructions, leaveEndEnv) = ([condJump (getPc newEnv)], updatePcSp condEndEnv 1 (-1))
-          (statmentInstructions, statementsEndEnv) = generateScopeCode statements leaveEndEnv
+          (statementInstructions, statementsEndEnv) = generateScopeCode statements leaveEndEnv
           (goBackInstructions, goBackEndEnv) = ([uncondJump (getPc env)], updatePc statementsEndEnv 1)
           newEnv = goBackEndEnv
 -- IdentDeclaration
@@ -363,9 +363,14 @@ generateCode (For _ _ pos) env = error ("For only accepts an clamp Int" ++ print
 generateCode s _ = error $ "not implemented" ++ show s
 
 generateForCode :: Ident -> [IMLVal] -> Enviroment -> SourcePos -> ([Instruction], Enviroment)
-generateForCode ident@(name, addr, (CodeGenerator.Var (ClampInt cmin cmax) _)) statements env pos = generateCode (While newCondition newStatements pos) env
-    where newCondition = (DyadicOpr Parser.Lt (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt cmax) pos) pos)
-          newStatements = statements ++ [(Assignment (Ident name pos) (DyadicOpr Parser.Plus (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt 1) pos) pos) pos)]
+generateForCode ident@(name, addr, (CodeGenerator.Var (ClampInt cmin cmax) _)) statements env pos = (statementInstructions ++ condInstructions ++ incInstructions ++ leaveInstructions, newEnv)
+    where (statementInstructions, statementsEndEnv) = generateScopeCode statements env
+          (condInstructions, condEndEnv) = generateCode (DyadicOpr Parser.Eq (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt cmax) pos) pos) statementsEndEnv
+          (incInstructions, incEndEnv) = generateMultiCode [(Assignment (Ident name pos) (DyadicOpr Parser.Plus (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt 1) pos) pos) pos)] condEndEnv
+          (leaveInstructions, leaveEndEnv) = ([condJump (getPc env)], updatePcSp incEndEnv 1 (-1))
+          newEnv = leaveEndEnv
+    --where newCondition = (DyadicOpr Parser.Le (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt cmax) pos) pos)
+    --      newStatements = statements ++ [(Assignment (Ident name pos) (DyadicOpr Parser.Plus (IdentFactor (Ident name pos) Nothing pos) (Literal (IMLInt 1) pos) pos) pos)]
 generateForCode _ _ _ pos = error ("For only accepts an clamp Int" ++ printLine pos ++ "\n")
 
 generateStoreOutputsCode :: [(IMLVal, Ident)] -> Enviroment -> ([Instruction], Enviroment)

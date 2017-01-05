@@ -1,5 +1,5 @@
-prog threeNpOne (in i: int, in j: int, out cycles: int) {
-
+prog threeNpOne (in i: int, in j: int, out cycles: int) 
+{
     def calcCycles(in n: int, out count: int)
     {
         count := 1;
@@ -19,9 +19,11 @@ prog threeNpOne (in i: int, in j: int, out cycles: int) {
 
     var curr: int;
 
-    while (i <= j) { 
+    while (i <= j) 
+    { 
         calcCycles(i, curr);
-        if (curr > cycles) {
+        if (curr > cycles) 
+        {
             cycles := curr;
         }
         i := i + 1;

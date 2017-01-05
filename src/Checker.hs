@@ -87,15 +87,23 @@ checkType (Program _ params functions statements pos) symbolTable = (t, symbol3)
           (_, symbol2) = checkTypeMultiple functions symbol1
           (t, symbol3) = checkTypeMultiple statements symbol2
 checkType (Ident name pos) symbolTable = ((getIdentType name symbolTable pos), symbolTable)
-checkType (IdentDeclaration _ (Ident name _) (ArrayInt _ _) pos) symbolTable = (None, (addIdent name IntArrayType symbolTable pos))
-checkType (IdentDeclaration _ (Ident name _) (ClampInt _ _) pos) symbolTable = (None, (addIdent name IntClampType symbolTable pos))
+checkType (IdentDeclaration _ (Ident name _) (ArrayInt a b) pos) symbolTable
+    | b <= a = error ("Max index of " ++ show IntArrayType ++ " must be greater than min index! " ++ show pos)
+    | otherwise = (None, (addIdent name IntArrayType symbolTable pos))
+checkType (IdentDeclaration _ (Ident name _) (ClampInt a b) pos) symbolTable
+    | b <= a = error ("Max of " ++ show IntClampType ++ " must be greater than min! " ++ show pos)
+    | otherwise = (None, (addIdent name IntClampType symbolTable pos))
 checkType (IdentDeclaration _ (Ident name _) _ pos) symbolTable = (None, (addIdent name IntType symbolTable pos))
-checkType (ParamDeclaration _ _ (Ident name _) (ArrayInt _ _) pos) symbolTable = (None, (addIdent name IntArrayType symbolTable pos))
-checkType (ParamDeclaration _ _ (Ident name _) (ClampInt _ _) pos) symbolTable = (None, (addIdent name IntClampType symbolTable pos))
+checkType (ParamDeclaration _ _ (Ident name _) (ArrayInt a b) pos) symbolTable 
+    | b <= a = error ("Max index of " ++ show IntArrayType ++ " must be greater than min index! " ++ show pos)
+    | otherwise = (None, (addIdent name IntArrayType symbolTable pos))
+checkType (ParamDeclaration _ _ (Ident name _) (ClampInt a b) pos) symbolTable 
+    | b <= a = error ("Max index of " ++ show IntClampType ++ " must be greater than min! " ++ show pos)
+    | otherwise = (None, (addIdent name IntClampType symbolTable pos))
 checkType (ParamDeclaration _ _ (Ident name _) _ pos) symbolTable = (None, (addIdent name IntType symbolTable pos))
-checkType (IdentFactor expression _ pos) symbolTable = checkType expression symbolTable --TODO: correct??
+checkType (IdentFactor expression _ pos) symbolTable = checkType expression symbolTable
 checkType (IdentArray (Ident name _) indexExpr pos) symbolTable
-    | getIdentType name symbolTable pos /= IntArrayType = error $ "Invalid array identifier " ++ name ++ ", actual type " ++ show (getIdentType name symbolTable pos) ++ " " ++ show pos
+    | getIdentType name symbolTable pos /= IntArrayType = error $ "Invalid array identifier " ++ name ++ ", actual type " ++ show (getIdentType name symbolTable pos) ++ "! " ++ show pos
     | indexType /= IntType && indexType /= IntClampType = error $ "Illegal index type: " ++ show IntType ++ " expected, " ++ show indexType ++ " found! " ++ show pos
     | otherwise = (IntType, symbolTable2)
     where (indexType, symbolTable2) = checkType indexExpr symbolTable
@@ -148,6 +156,7 @@ checkTypeMonadic op a pos symbolTable
           (typeA, symbol1) = checkType a symbolTable
 
 checkTypeDyadic :: IMLOperation -> IMLVal -> IMLVal -> SourcePos -> Environment -> (Type, Environment)
+checkTypeDyadic Parser.Div a (Literal (IMLInt 0) _) pos symbolTable = error $ "division by zero! " ++ show pos
 checkTypeDyadic op a b pos symbolTable
     | not (any (\t -> t == typeA) expectedTypesIn) = error $ showTypes expectedTypesIn " or " ++ " expected, " ++ show typeA ++ " found! " ++ show pos
     | not (any (\t -> t == typeB) expectedTypesIn) = error $ showTypes expectedTypesIn " or " ++ " expected, " ++ show typeB ++ " found! " ++ show pos

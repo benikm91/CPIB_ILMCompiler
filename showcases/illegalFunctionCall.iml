@@ -1,0 +1,8 @@
+prog illegalFunctionCall(out o: int) {
+    def test(inOut a :int, in b: int(0..1), in c: int[0..1]) {
+        a := 20;
+    }
+    var i: int(0..1);
+    var bb: int[0..10];
+    test(o, bb, i);
+}

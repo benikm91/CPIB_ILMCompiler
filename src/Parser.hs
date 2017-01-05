@@ -23,24 +23,24 @@ data IMLOperation = Times | Div | Mod | Plus | Minus | Lt | Ge | Eq | Ne | Gt | 
 data IMLLiteral = IMLBool Bool | IMLInt Int
     deriving Show
 
-data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] SourcePos -- name [paramDeclarations] [functionDeclarations] [statements]
+data IMLVal = Program IMLVal [IMLVal] [IMLVal] [IMLVal] SourcePos -- ident [paramDeclarations] [functionDeclarations] [statements]
     | Ident String SourcePos -- name
-    | IdentDeclaration IMLChangeMode IMLVal IMLType SourcePos -- changeMode Ident type
-    | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType SourcePos
-    | IdentFactor IMLVal (Maybe IMLVal) SourcePos -- name _
-    | IdentArray IMLVal IMLVal SourcePos -- name indexExpression
+    | IdentDeclaration IMLChangeMode IMLVal IMLType SourcePos -- changeMode (ident | identArray) type
+    | ParamDeclaration IMLFlowMode IMLChangeMode IMLVal IMLType SourcePos -- flowMode changeMode (ident | identArray) type
+    | IdentFactor IMLVal (Maybe IMLVal) SourcePos -- (ident | identArray) _
+    | IdentArray IMLVal IMLVal SourcePos -- ident indexExpression
     | DyadicOpr IMLOperation IMLVal IMLVal SourcePos -- opreration expression expression
     | MonadicOpr IMLOperation IMLVal SourcePos -- opperation expression
     | Literal IMLLiteral SourcePos -- literal
     | Init -- not used
-    | ExprList [IMLVal] SourcePos -- [expression]
+    | ExprList [IMLVal] SourcePos -- not used
     | Message String -- for printing error message
-    | FunctionDeclaration IMLVal [IMLVal] [IMLVal] SourcePos -- name [parameters] [statements]
-    | FunctionCall IMLVal [IMLVal] SourcePos -- name [parameters]
+    | FunctionDeclaration IMLVal [IMLVal] [IMLVal] SourcePos -- ident [parameters] [statements]
+    | FunctionCall IMLVal [IMLVal] SourcePos -- ident [parameters]
     | If IMLVal [IMLVal] [IMLVal] SourcePos -- condition [if Statements] [else Statement]
     | While IMLVal [IMLVal] SourcePos -- condition [statements]
     | For IMLVal [IMLVal] SourcePos -- condition [statements]
-    | Assignment IMLVal IMLVal SourcePos-- name expression
+    | Assignment IMLVal IMLVal SourcePos-- (ident | identArray) expression
     deriving Show
 
 -- PRINT

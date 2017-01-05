@@ -13,21 +13,22 @@ data Type = TCBool | TCInt | TCIntClamp | TCIntArray | None
 instance Show Type where
   show TCBool       = "bool"
   show TCInt        = "int"
+  show TCIntClamp   = "intClamp"
   show TCIntArray   = "intArray"
   show None         = "none"
 
-type Symbol = (String, Type) -- ident x type x scope
+type Symbol = (String, Type)
 
 type SymbolTable = [Symbol]
 
 type Environment = [SymbolTable]
 
 getIdentType :: String -> Environment -> SourcePos -> Type
-getIdentType ident [] pos = error $ "Ident " ++ ident ++ " not found in current scope!!" ++ show pos
+getIdentType ident [] pos = error $ "Ident " ++ ident ++ " not found in current scope!" ++ show pos
 getIdentType ident (symbolTable : _) pos = getIdentType2 ident symbolTable pos
 
 getIdentType2 :: String -> SymbolTable -> SourcePos -> Type
-getIdentType2 ident [] pos = error $ "Ident " ++ ident ++ " not found in current scope!!" ++ show pos
+getIdentType2 ident [] pos = error $ "Ident " ++ ident ++ " not found in current scope!" ++ show pos
 getIdentType2 ident ((currIdent, currType) : symbolTable) pos
     | currIdent == ident = currType
     | otherwise = getIdentType2 ident symbolTable pos
@@ -68,13 +69,15 @@ checkType (Program _ params functions statements pos) symbolTable = (None, symbo
           symbol3 = checkTypeMultiple statements symbol2
 checkType (Ident name pos) symbolTable = ((getIdentType name symbolTable pos), symbolTable)
 checkType (IdentDeclaration _ (Ident name _) (ArrayInt _ _) pos) symbolTable = (None, (addIdent name TCIntArray symbolTable pos))
+checkType (IdentDeclaration _ (Ident name _) (ClampInt _ _) pos) symbolTable = (None, (addIdent name TCIntClamp symbolTable pos))
 checkType (IdentDeclaration _ (Ident name _) _ pos) symbolTable = (None, (addIdent name TCInt symbolTable pos))
 checkType (ParamDeclaration _ _ (Ident name _) (ArrayInt _ _) pos) symbolTable = (None, (addIdent name TCIntArray symbolTable pos))
+checkType (ParamDeclaration _ _ (Ident name _) (ClampInt _ _) pos) symbolTable = (None, (addIdent name TCIntClamp symbolTable pos))
 checkType (ParamDeclaration _ _ (Ident name _) _ pos) symbolTable = (None, (addIdent name TCInt symbolTable pos))
 checkType (IdentFactor expression _ pos) symbolTable = checkType expression symbolTable --TODO: correct??
 checkType (IdentArray (Ident name _) indexExpr pos) symbolTable
     | getIdentType name symbolTable pos /= TCIntArray = error $ "Invalid array identifier " ++ name ++ ", actual type " ++ show (getIdentType name symbolTable pos) ++ " " ++ show pos
-    | indexType /= TCInt = error $ "Illegal index type: " ++ show TCInt ++ " expected, " ++ show indexType ++ " found! " ++ show pos
+    | indexType /= TCInt && indexType /= TCIntClamp = error $ "Illegal index type: " ++ show TCInt ++ " expected, " ++ show indexType ++ " found! " ++ show pos
     | otherwise = (TCInt, symbolTable2)
     where (indexType, symbolTable2) = checkType indexExpr symbolTable
 checkType (Literal literal pos) symbolTable = (getLiteralType(literal), symbolTable)
@@ -86,7 +89,7 @@ checkType (ExprList (expr : exprs) pos) symbolTable = checkType (ExprList exprs 
 checkType (FunctionDeclaration _ params statements pos) symbolTable = (None, (removeScope symbol2))
     where symbol1 = checkTypeMultiple params (createScope symbolTable)
           symbol2 = checkTypeMultiple statements symbol1
-checkType (FunctionCall _ _ _) symbolTable = (None, symbolTable) -- TODO: mybe we can check if function exists (actually work of scope checker...)
+checkType (FunctionCall _ _ _) symbolTable = (None, symbolTable) -- TODO: check if correct funtion arguments!
 checkType (If condition ifStatments elseStatements pos) symbolTable 
     | condType /= TCBool = error $ "Illegal if condition type : " ++ show TCBool ++ " expected, " ++ show condType ++ " found! " ++ show pos
     | otherwise = (None, symbol3)
@@ -99,7 +102,7 @@ checkType (While condition statements pos) symbolTable
     where (condType, symbol1) = checkType condition symbolTable
           symbol2 = checkTypeMultiple statements symbol1
 checkType (For condition statements pos) symbolTable 
-    | condType /= TCInt = error $ "Illegal For condition type : " ++ show TCInt ++ " expected, " ++ show condType ++ " found! " ++ show pos
+    | condType /= TCIntClamp = error $ "Illegal For condition type : " ++ show TCIntClamp ++ " expected, " ++ show condType ++ " found! " ++ show pos
     | otherwise = (None, symbol2)
     where (condType, symbol1) = checkType condition symbolTable
           symbol2 = checkTypeMultiple statements symbol1
@@ -108,40 +111,45 @@ checkType (Assignment (Ident ident _) expression pos) symbolTable
     | otherwise = (None, symbolTable)
     where (condType, _) = checkType expression symbolTable
           identType = getIdentType ident symbolTable pos
-          identType2 = if identType == TCIntArray then TCInt else identType
+          identType2 = if identType == TCIntArray || identType == TCIntClamp then TCInt else identType
 checkType _ symbolTable = (None, symbolTable)
 
 checkTypeMonadic :: IMLOperation -> IMLVal -> SourcePos -> Environment -> (Type, Environment)
 checkTypeMonadic op a pos symbolTable
-    | typeA /= expectedTypeIn = error $ (show expectedTypeIn) ++ " expected, " ++ (show typeA) ++ " found! " ++ (show pos)
+    | not (any (\t -> t == typeA) expectedTypesIn) = error $ showTypes expectedTypesIn ++ " expected, " ++ show typeA ++ " found! " ++ show pos
     | otherwise = (typeOut, symbol1)
-    where (expectedTypeIn, typeOut) = getOpExpectedType op
+    where (expectedTypesIn, typeOut) = getOpExpectedType op
           (typeA, symbol1) = checkType a symbolTable
 
 checkTypeDyadic :: IMLOperation -> IMLVal -> IMLVal -> SourcePos -> Environment -> (Type, Environment)
 checkTypeDyadic op a b pos symbolTable
-    | typeA /= expectedTypeIn = error $ show expectedTypeIn ++ " expected, " ++ show typeA ++ " found! " ++ show pos
-    | typeB /= expectedTypeIn = error $ show expectedTypeIn ++ " expected, " ++ show typeB ++ " found! " ++ show pos
+    | not (any (\t -> t == typeA) expectedTypesIn) = error $ showTypes expectedTypesIn ++ " expected, " ++ show typeA ++ " found! " ++ show pos
+    | not (any (\t -> t == typeB) expectedTypesIn) = error $ showTypes expectedTypesIn ++ " expected, " ++ show typeB ++ " found! " ++ show pos
     | otherwise = (typeOut, symbol2)
-    where (expectedTypeIn, typeOut) = getOpExpectedType op
+    where (expectedTypesIn, typeOut) = getOpExpectedType op
           (typeA, symbol1) = checkType a symbolTable
           (typeB, symbol2) = checkType b symbol1
 
-getOpExpectedType :: IMLOperation -> (Type,Type)
-getOpExpectedType Parser.Plus  = (TCInt, TCInt)
-getOpExpectedType Parser.Minus = (TCInt, TCInt)
-getOpExpectedType Parser.Times = (TCInt, TCInt)
-getOpExpectedType Parser.Div   = (TCInt, TCInt)
-getOpExpectedType Parser.Mod   = (TCInt, TCInt)
-getOpExpectedType Parser.Lt    = (TCInt, TCBool)
-getOpExpectedType Parser.Ge    = (TCInt, TCBool)
-getOpExpectedType Parser.Eq    = (TCInt, TCBool)
-getOpExpectedType Parser.Ne    = (TCInt, TCBool)
-getOpExpectedType Parser.Gt    = (TCInt, TCBool)
-getOpExpectedType Parser.Le    = (TCInt, TCBool)
-getOpExpectedType Parser.And   = (TCBool, TCBool)
-getOpExpectedType Parser.Or    = (TCBool, TCBool)
-getOpExpectedType Parser.Not   = (TCBool, TCBool)
+showTypes :: [Type] -> String
+showTypes [] = ""
+showTypes (tcType : []) = show tcType
+showTypes (tcType : tcTypes) = show tcType ++ " or " ++ showTypes tcTypes
+
+getOpExpectedType :: IMLOperation -> ([Type] ,Type)
+getOpExpectedType Parser.Plus  = ([TCInt, TCIntClamp], TCInt)
+getOpExpectedType Parser.Minus = ([TCInt, TCIntClamp], TCInt)
+getOpExpectedType Parser.Times = ([TCInt, TCIntClamp], TCInt)
+getOpExpectedType Parser.Div   = ([TCInt, TCIntClamp], TCInt)
+getOpExpectedType Parser.Mod   = ([TCInt, TCIntClamp], TCInt)
+getOpExpectedType Parser.Lt    = ([TCInt, TCIntClamp], TCBool)
+getOpExpectedType Parser.Ge    = ([TCInt, TCIntClamp], TCBool)
+getOpExpectedType Parser.Eq    = ([TCInt, TCIntClamp], TCBool)
+getOpExpectedType Parser.Ne    = ([TCInt, TCIntClamp], TCBool)
+getOpExpectedType Parser.Gt    = ([TCInt, TCIntClamp], TCBool)
+getOpExpectedType Parser.Le    = ([TCInt, TCIntClamp], TCBool)
+getOpExpectedType Parser.And   = ([TCBool], TCBool)
+getOpExpectedType Parser.Or    = ([TCBool], TCBool)
+getOpExpectedType Parser.Not   = ([TCBool], TCBool)
 
 getLiteralType :: IMLLiteral -> Type
 getLiteralType (Parser.IMLBool _) = TCBool

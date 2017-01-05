@@ -335,10 +335,10 @@ generateCode (DyadicOpr op a b pos) env = (expressionInstructions ++ [getDyadicO
 -- If
 generateCode (If condition ifStatements elseStatements _) env@(_, _, _, global, locals) = (condInstructions ++ branchInstructions ++ ifStatementInstructions ++ jumpInstructions ++ elseStatementInstructions, newEnv)
     where (condInstructions, condEndEnv) = generateCode condition env
-          (branchInstructions, branchEndEnv) = ([condJump (getPc ifEndEnv + 1)], updatePcSp condEndEnv 1 (-1))
-          (ifStatementInstructions, ifEndEnv) = generateScopeCode ifStatements branchEndEnv
-          (jumpInstructions, jumpEndEnv) = ([uncondJump (getPc newEnv)], updatePc ifEndEnv 1)
-          (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements jumpEndEnv
+          (branchInstructions, ifStartEnv) = ([condJump (getPc elseStartEnv)], updatePcSp condEndEnv 1 (-1))
+          (ifStatementInstructions, ifEndEnv) = generateScopeCode ifStatements ifStartEnv
+          (jumpInstructions, elseStartEnv) = ([uncondJump (getPc newEnv)], updatePc ifEndEnv 1)
+          (elseStatementInstructions, elseEndEnv) = generateScopeCode elseStatements elseStartEnv
           newEnv = elseEndEnv
 -- Function call
 generateCode (FunctionCall (Ident name pos) params _) env = (prepParams ++ callInstructions ++ storeOutputs ++ moveSpInVM, newEnv)
@@ -461,7 +461,7 @@ extractArrayMax :: IMLType -> Int
 extractArrayMax (ArrayInt _ amax) = amax
 
 loadArrayAddress :: IMLVal -> Enviroment -> ([Instruction], Enviroment)
-loadArrayAddress (IdentArray (Ident name pos) indexExpr arrayPos) env = (indexStatments ++ [loadIm32 $ toInteger startAddress, Add Int32VmTy $ rc2loc $ toRc arrayPos, loadIm32 $ toInteger  amin, Sub Int32VmTy $ rc2loc $ toRc arrayPos, Convert Int32VmTy IntVmTy $ rc2loc $ toRc arrayPos], updatePcSp newEnv 5 1)
+loadArrayAddress (IdentArray (Ident name pos) indexExpr arrayPos) env = (indexStatments ++ [loadIm32 $ toInteger startAddress, Add Int32VmTy $ rc2loc $ toRc arrayPos, loadIm32 $ toInteger amin, Sub Int32VmTy $ rc2loc $ toRc arrayPos, Convert Int32VmTy IntVmTy $ rc2loc $ toRc arrayPos], updatePc newEnv 5)
     where startAddress = getIdentAddress env name pos
           ident@(_, add, identInfo) = getIdent env name pos
           imlType = extractImlType identInfo

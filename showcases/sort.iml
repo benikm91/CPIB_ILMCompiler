@@ -1,9 +1,9 @@
 prog selectionSort(inOut a : int[0..5]) {
 
-    var toSortIndex : int (0..6);
+    var toSortIndex : int (0..5);
 
     var minIndex: int;
-    var arrayIndex : int (0..6);
+    var arrayIndex : int (0..5);
 
     for (toSortIndex) {
 

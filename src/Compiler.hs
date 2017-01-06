@@ -5,14 +5,13 @@ module Compiler
 import Checker
 import CodeGenerator
 import Parser
-import Path
 import VirtualMachineIO
 
-readAndCompile :: IO ()
-readAndCompile = do
-    program <- readFile getFilePath
+readAndCompile :: String -> IO ()
+readAndCompile file = do
+    program <- readFile file
     putStrLn "=============== Input Program ==============="
-    putStrLn $ program
+    putStrLn program
     putStrLn "=============== Abstract Syntax Tree ==============="
     putStrLn $ printTree (readExpr program)
     putStrLn "=============== Static Analysis ==============="
@@ -20,7 +19,7 @@ readAndCompile = do
     putStrLn "=============== Compiled Program ==============="
     putStrLn $ show (compile program)
     putStrLn "=============== Run Program ==============="
-    t <- (debugProgramStack . compile) program
+    t <- (execProgram . compile) program
     print t
     putStrLn "===================================================="
 

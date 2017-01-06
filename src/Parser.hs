@@ -79,8 +79,8 @@ braces  = between (do string "{"; spaces) (do spaces; string "}")
 brackets  = between (do string "("; spaces) (do spaces; string ")")
 
 -- sourceCode programName
-readExpr :: String -> IMLVal
-readExpr input = case parse parseProgram "Program" input of
+readExpr :: String -> String -> IMLVal
+readExpr input programName = case parse parseProgram programName input of
     Left err -> Message $ "Parse error: " ++ show err
     Right val -> val
 

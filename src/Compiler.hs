@@ -11,17 +11,17 @@ readAndCompile :: String -> IO ()
 readAndCompile file = do
     program <- readFile file
     putStrLn "=============== Input Program ==============="
-    putStrLn program
+    putStrLn $ program
     putStrLn "=============== Abstract Syntax Tree ==============="
-    putStrLn $ printTree (readExpr program)
+    putStrLn $ printTree (readExpr program file)
     putStrLn "=============== Static Analysis ==============="
-    putStrLn $ show $ check (readExpr program)
+    putStrLn $ show $ check (readExpr program file)
     putStrLn "=============== Compiled Program ==============="
-    putStrLn $ show (compile program)
+    putStrLn $ show (compile program file)
     putStrLn "=============== Run Program ==============="
-    t <- (execProgram . compile) program
+    t <- debugProgramStack (compile program file)
     print t
     putStrLn "===================================================="
 
-compile :: String -> VMProgram
-compile = toHaskellVM . readExpr
+compile :: String -> String -> VMProgram
+compile a b = toHaskellVM $ readExpr a b

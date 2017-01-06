@@ -88,17 +88,17 @@ checkType (Program _ params functions statements pos) symbolTable = (t, symbol3)
           (t, symbol3) = checkTypeMultiple statements symbol2
 checkType (Ident name pos) symbolTable = ((getIdentType name symbolTable pos), symbolTable)
 checkType (IdentDeclaration _ (Ident name _) (ArrayInt a b) pos) symbolTable
-    | b <= a = error ("Max index of " ++ show IntArrayType ++ " must be greater than min index! " ++ show pos)
+    | b < a = error ("Min index of " ++ show IntArrayType ++ " can't be smaller than min index! " ++ show pos)
     | otherwise = (None, (addIdent name IntArrayType symbolTable pos))
 checkType (IdentDeclaration _ (Ident name _) (ClampInt a b) pos) symbolTable
-    | b <= a = error ("Max of " ++ show IntClampType ++ " must be greater than min! " ++ show pos)
+    | b < a = error ("Min of " ++ show IntClampType ++ " can't be smaller than min! " ++ show pos)
     | otherwise = (None, (addIdent name IntClampType symbolTable pos))
 checkType (IdentDeclaration _ (Ident name _) _ pos) symbolTable = (None, (addIdent name IntType symbolTable pos))
 checkType (ParamDeclaration _ _ (Ident name _) (ArrayInt a b) pos) symbolTable 
-    | b <= a = error ("Max index of " ++ show IntArrayType ++ " must be greater than min index! " ++ show pos)
+    | b < a = error ("Min index of " ++ show IntArrayType ++ " can't be smaller than max index! " ++ show pos)
     | otherwise = (None, (addIdent name IntArrayType symbolTable pos))
 checkType (ParamDeclaration _ _ (Ident name _) (ClampInt a b) pos) symbolTable 
-    | b <= a = error ("Max index of " ++ show IntClampType ++ " must be greater than min! " ++ show pos)
+    | b < a = error ("Min index of " ++ show IntClampType ++ " can't be smaller than max! " ++ show pos)
     | otherwise = (None, (addIdent name IntClampType symbolTable pos))
 checkType (ParamDeclaration _ _ (Ident name _) _ pos) symbolTable = (None, (addIdent name IntType symbolTable pos))
 checkType (IdentFactor expression _ pos) symbolTable = checkType expression symbolTable

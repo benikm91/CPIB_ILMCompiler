@@ -12,6 +12,7 @@ import BaseDecls
 import CheckedArithmetic
 import ErrorHandlingGeneric
 import Locations
+import System.IO
 --import Scanner(readBool, readInteger)
 
 import Data.Array
@@ -410,6 +411,7 @@ execInstr (CondJump jumpAddr) (pc, fp, IntVmVal x : stack)
 
 execInstr (Input BoolTy loc indicator) (pc, fp, stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show BoolTy ++ " = ");
+     hFlush stdout
      inputString <- getLine
      case readBool inputString of
        Nothing ->
@@ -420,6 +422,7 @@ execInstr (Input BoolTy loc indicator) (pc, fp, stack) =
          in return2 (pc + 1, fp, stack')
 execInstr (Input (IntTy 32) loc indicator) (pc, fp, stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show (IntTy 32) ++ " = ");
+     hFlush stdout
      inputString <- getLine
      case readInteger inputString of
        Nothing ->
@@ -433,6 +436,7 @@ execInstr (Input (IntTy 32) loc indicator) (pc, fp, stack) =
              in return2 (pc + 1, fp, stack')
 execInstr (Input (IntTy 64) loc indicator) (pc, fp, IntVmVal addr : stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show (IntTy 64) ++ " = ");
+     hFlush stdout
      inputString <- getLine
      case readInteger inputString of
        Nothing ->
@@ -446,6 +450,7 @@ execInstr (Input (IntTy 64) loc indicator) (pc, fp, IntVmVal addr : stack) =
              in return2 (pc + 1, fp, stack')
 execInstr (Input (IntTy 1024) loc indicator) (pc, fp, IntVmVal addr : stack) =
   do putStr ("? " ++ indicator ++ " : " ++ show (IntTy 1024) ++ " = ");
+     hFlush stdout
      inputString <- getLine
      case readInteger inputString of
        Nothing ->

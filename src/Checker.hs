@@ -117,7 +117,7 @@ checkType (FunctionDeclaration  (Ident ident _) params statements pos) symbolTab
     where (_, symbol1) = checkTypeMultiple params []
           (t, symbol2) = checkTypeMultiple statements symbol1
           symbol3 = addFunctionIdent ident params symbolTable pos
-checkType (FunctionCall (Ident ident _) params pos) symbolTable  -- TODO: check if correct funtion arguments!
+checkType (FunctionCall (Ident ident _) params pos) symbolTable
     | expectedParamTypes /= parmTypes = error $ "Illegal function call : parameter types [" ++ showTypes expectedParamTypes ", " ++ "] expected, [" ++ showTypes parmTypes ", " ++ "] found! " ++ show pos
     | otherwise = (None, symbolTable)
     where parmTypes = map (\p -> case checkType p symbolTable of (t, _) -> t)  params

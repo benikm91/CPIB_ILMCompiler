@@ -238,7 +238,7 @@ generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name pos) 
           instruction = getLoadInputInstruction imlFlowMode 0 name pos
 -- ClampInt
 generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name identPos) var@(ClampInt cmin cmax) pos) env
-    | cmax <= cmin = error ("Max of Clamp must be greater than min" ++ printLine pos ++ " | " ++ show var ++ "\n")
+    | cmax < cmin = error ("Max of Clamp must be greater or equal than min" ++ printLine pos ++ " | " ++ show var ++ "\n")
     | otherwise = ([instruction] ++ checkMinInst ++ checkMaxInst ++ setToMinInst ++ setToMaxInst, updatePcSp newEnv 15 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param var imlFlowMode changeMode) identPos
           instruction = getLoadInputInstruction imlFlowMode cmin name pos
@@ -253,7 +253,7 @@ generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name ident
 
 -- Array
 generateInputCode par@(ParamDeclaration imlFlowMode changeMode (Ident name identPos) var@(ArrayInt amin amax) pos) env
-    | amax <= amin = error ("Max of Array must be greater than min" ++ printLine pos ++ " | " ++ show var ++ "\n")
+    | amax < amin = error ("Max of Array must be greater or equal than min" ++ printLine pos ++ " | " ++ show var ++ "\n")
     | otherwise = (instructions, updatePcSp newEnv (length instructions) arrayLength)
     where arrayLength = amax - amin + 1;
           newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Param var imlFlowMode changeMode) identPos
@@ -394,11 +394,11 @@ generateIdentDeclarationCode :: String -> IMLChangeMode -> IMLType -> Environmen
 generateIdentDeclarationCode name changeMode Int env pos = ([loadIm32 0], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var Int changeMode) pos
 generateIdentDeclarationCode name changeMode var@(ClampInt cmin cmax) env pos
-    | cmax <= cmin = error ("Max of Clamp must be greater than min" ++ printLine pos ++ "\n")
+    | cmax < cmin = error ("Max of Clamp must be greater or equal than min" ++ printLine pos ++ "\n")
     | otherwise = ([loadIm32 $ toInteger cmin], updatePcSp newEnv 1 1)
     where newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var var changeMode) pos
 generateIdentDeclarationCode name changeMode var@(ArrayInt amin amax) env pos
-    | amax <= amin = error ("Max of Array must be greater than min" ++ printLine pos ++ "\n")
+    | amax < amin = error ("Max of Array must be greater or equal than min" ++ printLine pos ++ "\n")
     | otherwise =  (instructions, updatePcSp newEnv (amax - amin + 1) (amax - amin + 1))
     where instructions = generateIdentDeclarationArrayCode amin amax
           newEnv = addLocalIdent env (name, getSp env, CodeGenerator.Var var changeMode) pos

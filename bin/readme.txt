@@ -8,4 +8,4 @@ Example:
 or on Windows 10 use "/"
     bin/himlcompiler.exe "showcases/3np1.iml"
 or on macOS use
-    ./bin/mac_himlcompiler "showcases/3np1.iml"
+    bin/mac_himlcompiler "showcases/3np1.iml"

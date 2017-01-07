@@ -418,10 +418,10 @@ generateAssignmentCode (Ident name pos) (Param var@(ClampInt _ _) _ _) (exprInst
     where loadInst = loadAddress $ getIdentAddress exprEnv name pos
           (clampInst, clampEnv) = generateClampAssignmentCode var exprEnv
 -- array assignment (var)
-generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
+generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Var var@(ArrayInt amin amax) _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-2))
     where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
 -- array assignment (param)
-generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Param var@(ArrayInt amin amax) _ _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-1))
+generateAssignmentCode (IdentArray (Ident name identPos) i identArrPos) (CodeGenerator.Param var@(ArrayInt amin amax) _ _) (exprInst, exprEnv) = (loadArrayInstr ++ exprInst ++ [store], updatePcSp loadArrayEnv 1 (-2))
     where (loadArrayInstr, loadArrayEnv) = loadArrayAddress (IdentArray (Ident name identPos) i identArrPos) exprEnv
 -- normal
 generateAssignmentCode (Ident name pos) _ (exprInst, exprEnv)= ([loadAddrRel $ getIdentAddress exprEnv name pos] ++ exprInst ++ [store], updatePcSp exprEnv 2 (-1))

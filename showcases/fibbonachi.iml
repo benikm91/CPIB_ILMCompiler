@@ -1,7 +1,7 @@
 prog fibbonachi (in n:int, out o:int)
 {
     def fib(in n :int, out o :int) {
-        if(n = 0) 
+        if(n <= 0) 
         {
             o := 0;
         }
@@ -9,16 +9,14 @@ prog fibbonachi (in n:int, out o:int)
         {
             if(n = 1) 
             {
-                o:= 1;
+                o := 1;
             }
             else
             {
                 var a :int;
                 var b :int;
-                n := n - 1; 
-                fib(n, a);
-                n := n - 1; 
-                fib(n, b);
+                fib(n - 1, a);
+                fib(n - 2, b);
                 o := a + b;
             }
         }

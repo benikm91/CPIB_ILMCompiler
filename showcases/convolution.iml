@@ -1,0 +1,28 @@
+prog laplaceFilter (inOut a: int[0..5]) {
+    
+    // copy a to b
+    var b: int[-1..6];
+    var index: int(0..5);
+
+    for (index) {
+        b[index] := a[index];
+    }
+
+    // prep laplace filter
+    var filter : int[-1..1];
+    filter[-1] :=  1;
+    filter[ 0] := -2;
+    filter[ 1] :=  1;
+
+    // run convolution
+    index := 0;
+    for (index) {
+        var value: int;
+        var filterIndex: int(-1..1);
+        for (filterIndex) {
+            value := value + b[index + filterIndex] * filter[filterIndex];
+        }
+        a[index] := value;
+    }
+    
+}

@@ -141,9 +141,10 @@ checkType (For condition statements pos) symbolTable
     where (condType, symbol1) = checkType condition (createScope symbolTable)
           (t, symbol2) = checkTypeMultiple statements symbol1
 checkType (Assignment (Ident ident _) expression pos) symbolTable 
-    | condType /= identType2 = error $ "Illegal assignment type type : " ++ show identType2 ++ " expected, " ++ show condType ++ " found! " ++ show pos
+    | condType2 /= identType2 = error $ "Illegal assignment type type : " ++ show identType2 ++ " expected, " ++ show condType2 ++ " found! " ++ show pos
     | otherwise = (None, symbolTable)
     where (condType, _) = checkType expression symbolTable
+          condType2 = if condType == IntClampType then IntType else condType
           identType = getIdentType ident symbolTable pos
           identType2 = if identType == IntArrayType || identType == IntClampType then IntType else identType
 checkType _ symbolTable = (None, symbolTable)

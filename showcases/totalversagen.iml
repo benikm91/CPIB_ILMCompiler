@@ -1,0 +1,23 @@
+prog totalversagen(in var a : int, out var b : int) {
+	def double (in a : int, out b : int) {
+		b := a + a; 
+	}
+
+	var c : int (-10 .. 10);
+	var d : int [0 .. 10];
+	
+	if (a + 10) {
+		double(a, a);
+	}
+	
+	for (c) {
+		a := a + 1;
+	}
+	
+	double(a, 2, a);
+	
+	a := c / 0;
+	
+	b := a;
+}
+	

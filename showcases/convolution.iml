@@ -14,12 +14,14 @@ prog laplaceFilter (inOut a: int[0..5]) {
 
     index := 0;                  // run convolution
     for (index) {
-        var value: int(-255 .. 255);
+        var value: int;
         var filterIndex: int(-1..1);
         for (filterIndex) {
             value := value + b[index + filterIndex] * filter[filterIndex];
         }
-        a[index] := value;
+        var clampedValue : int(-255 .. 255);
+        clampedValue := value;
+        a[index] := clampedValue;
     }
     
 }

@@ -1,13 +1,13 @@
 prog laplaceFilter (inOut a: int[0..5]) {
     
-    var b: int[-1..6];           // b is a with a border "around" it
-    var index: int(0..5); 
+    var b : int[-1 .. 6];           // b is a with a border "around" it
+    var index : int(0 .. 5); 
 
     for (index) {                // copy a into b
         b[index] := a[index];
     }
 
-    var filter : int[-1..1];     // laplace filter
+    var filter : int[-1 .. 1];     // laplace filter
     filter[-1] :=  1;
     filter[ 0] := -2;
     filter[ 1] :=  1;
@@ -19,7 +19,9 @@ prog laplaceFilter (inOut a: int[0..5]) {
         for (filterIndex) {
             value := value + b[index + filterIndex] * filter[filterIndex];
         }
-        a[index] := value;
+        var clampedValue : int(-255 .. 255);
+        clampedValue := value;
+        a[index] := clampedValue;
     }
     
 }

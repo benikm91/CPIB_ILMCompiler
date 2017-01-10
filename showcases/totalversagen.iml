@@ -3,14 +3,13 @@ prog totalversagen(in var a : int, out var b : int) {
 		b := a + a; 
 	}
 
-	var c : int (-10 .. 10);
-	var d : int [0 .. 10];
+	var a : int (0 .. -10);
 	
 	if (a + 10) {
 		double(a, a);
 	}
 	
-	for (c) {
+	for (d) {
 		a := a + 1;
 	}
 	
@@ -20,4 +19,3 @@ prog totalversagen(in var a : int, out var b : int) {
 	
 	b := a;
 }
-	
